@@ -70,7 +70,7 @@
                     "server_id": "44b277eb-39be-4921-be31-3d61b43651d7"
                 }
             ],
-            "availability_zone": "fake-availability-zone",
+            "availability_zone": null,
             "created_at": "2001-01-01-12:30:30",
             "id": "VOL_44b277eb-39be-4921-be31-3d61b43651d7",
             "size": 4,
