@@ -1,0 +1,256 @@
+Source: openstack-trove
+Section: net
+Priority: extra
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+XSBC-Original-Maintainer: PKG OpenStack <openstack-devel@lists.alioth.debian.org>
+Uploaders: Julien Danjou <acid@debian.org>,
+           Thomas Goirand <zigo@debian.org>,
+           Mehdi Abaakouk <sileht@sileht.net>,
+           David Della Vecchia <ddv@canonical.com>,
+Build-Depends: debhelper (>= 9~),
+               dh-exec,
+               dh-python,
+               dh-systemd,
+               openstack-pkg-tools (>= 23~),
+               python-all,
+               python-setuptools,
+               python-sphinx,
+Build-Depends-Indep: python-babel (>= 1.3),
+                     python-cassandra (>= 2.1.4),
+                     python-cinderclient (>= 1:1.3.1),
+                     python-couchdb (>= 0.8),
+                     python-coverage (>= 3.6),
+                     python-designateclient (>= 1.5.0),
+                     python-eventlet (>= 0.18.2),
+                     python-hacking (>= 0.10.0),
+                     python-heatclient (>= 0.6.0),
+                     python-httplib2 (>= 0.7.5),
+                     python-iso8601 (>= 0.1.9),
+                     python-jinja2 (>= 2.8),
+                     python-jsonschema (>= 2.0.0),
+                     python-keystoneclient (>= 1:1.6.0),
+                     python-keystonemiddleware (>= 4.0.0),
+                     python-lxml (>= 2.3),
+                     python-migrate (>= 0.9.6),
+                     python-mock (>= 1.2),
+                     python-mox3 (>= 0.7.0),
+                     python-mysqldb,
+                     python-netaddr (>= 0.7.12),
+                     python-netifaces (>= 0.10.4),
+                     python-neutronclient (>= 1:2.6.0),
+                     python-nose,
+                     python-nosexcover,
+                     python-novaclient (>= 2:2.29.0),
+                     python-openstack-doc-tools (>= 0.23),
+                     python-oslo.concurrency (>= 3.7.1),
+                     python-oslo.config (>= 1:3.7.0),
+                     python-oslo.context (>= 0.2.0),
+                     python-oslo.db (>= 4.1.0),
+                     python-oslo.i18n (>= 2.1.0),
+                     python-oslo.log (>= 1.14.0),
+                     python-oslo.messaging (>= 4.0.0),
+                     python-oslo.middleware (>= 3.0.0),
+                     python-oslo.serialization (>= 1.10.0),
+                     python-oslo.service (>= 1.0.0),
+                     python-oslo.utils (>= 3.5.0),
+                     python-oslosphinx (>= 2.5.0),
+                     python-osprofiler (>= 1.1.0),
+                     python-passlib (>= 1.6),
+                     python-paste,
+                     python-pastedeploy (>= 1.5.0),
+                     python-pbr (>= 1.8),
+                     python-pexpect (>= 3.1),
+                     python-psycopg2 (>= 2.5),
+                     python-proboscis (>= 1.2.5.3),
+                     python-pymongo (>= 3.0.2),
+                     python-pymysql,
+                     python-redis (>= 2.10.0),
+                     python-routes (>= 1.12.3),
+                     python-six (>= 1.9.0),
+                     python-sqlalchemy (>= 1.0.10),
+                     python-stevedore (>= 1.5.0),
+                     python-swiftclient (>= 1:2.2.0),
+                     python-testtools (>= 1.4.0),
+                     python-troveclient,
+                     python-webob (>= 1.2.3),
+                     python-webtest (>= 2.0),
+                     python-wsgi-intercept (>= 0.6.1),
+                     subunit (>= 0.0.18),
+                     testrepository (>= 0.0.18),
+Standards-Version: 3.9.6
+Vcs-Browser: https://git.launchpad.net/~ubuntu-server-dev/ubuntu/+source/openstack-trove
+Vcs-Git: git://git.launchpad.net/~ubuntu-server-dev/ubuntu/+source/openstack-trove
+Homepage: http://github.com/openstack/trove
+
+Package: python-trove
+Architecture: all
+Section: python
+Depends: python-babel (>= 1.3),
+         python-cinderclient (>= 1:1.3.1),
+         python-designateclient (>= 1.5.0),
+         python-eventlet (>= 0.18.2),
+         python-heatclient (>= 0.6.0),
+         python-httplib2 (>= 0.7.5),
+         python-iso8601 (>= 0.1.9),
+         python-jinja2 (>= 2.8),
+         python-jsonschema (>= 2.0.0),
+         python-keystoneclient (>= 1:1.6.0),
+         python-keystonemiddleware (>= 4.0.0),
+         python-lxml (>= 2.3),
+         python-migrate (>= 0.9.6),
+         python-mysqldb,
+         python-netaddr (>= 0.7.12),
+         python-netifaces (>= 0.10.4),
+         python-neutronclient (>= 1:2.6.0),
+         python-novaclient (>= 2:2.29.0),
+         python-oslo.concurrency (>= 3.7.1),
+         python-oslo.config (>= 1:3.7.0),
+         python-oslo.context (>= 0.2.0),
+         python-oslo.db (>= 4.1.0),
+         python-oslo.i18n (>= 2.1.0),
+         python-oslo.log (>= 1.14.0),
+         python-oslo.messaging (>= 4.0.0),
+         python-oslo.middleware (>= 3.0.0),
+         python-oslo.serialization (>= 1.10.0),
+         python-oslo.service (>= 1.0.0),
+         python-oslo.utils (>= 3.5.0),
+         python-osprofiler (>= 1.1.0),
+         python-passlib (>= 1.6),
+         python-paste,
+         python-pastedeploy (>= 1.5.0),
+         python-pbr (>= 1.8),
+         python-pexpect (>= 3.1),
+         python-pymysql,
+         python-routes (>= 1.12.3),
+         python-six (>= 1.9.0),
+         python-sqlalchemy (>= 1.0.10),
+         python-stevedore (>= 1.5.0),
+         python-swiftclient (>= 1:2.2.0),
+         python-webob (>= 1.2.3),
+         ${misc:Depends},
+         ${python:Depends},
+Suggests: python-suds (>= 0.4.0),
+Conflicts: python-cjson,
+Description: Database as a Service for OpenStack - Python lib
+ Trove is "Database as a Service" for Openstack. It's designed to allow users
+ to quickly and easily utilize the features of a relational database without
+ the burden of handling complex administrative tasks.
+ .
+ Cloud users and database administrators can provision and manage multiple
+ database instances as needed. The service focus on providing resource
+ isolation at high performance while automating deployment, configuration,
+ patching, backups, restores, and monitoring. Trove is designed to support a
+ single-tenant database within a Nova instance. There is no restrictions on how
+ Nova is configured, since Trove interacts with other OpenStack components
+ purely through the API.
+ .
+ This package provides the Trove Python library.
+
+Package: trove-common
+Architecture: all
+Depends: adduser,
+         python-trove (= ${binary:Version}),
+         sqlite3,
+         ${misc:Depends},
+         ${python:Depends},
+Description: Database as a Service for OpenStack - common files
+ Trove is Database as a Service for Openstack. It's designed to run entirely on
+ OpenStack, with the goal of allowing users to quickly and easily utilize the
+ features of a relational database without the burden of handling complex
+ administrative tasks. Cloud users and database administrators can provision
+ and manage multiple database instances as needed. Initially, the service will
+ focus on providing resource isolation at high performance while automating
+ complex administrative tasks including deployment, configuration, patching,
+ backups, restores, and monitoring. Trove is designed to support a
+ single-tenant database within a Nova instance. There is no restrictions on how
+ Nova is configured, since Trove interacts with other OpenStack components
+ purely through the API.
+ .
+ This package provides the Trove common files.
+
+Package: trove-api
+Architecture: all
+Depends: trove-common,
+         ${misc:Depends},
+         ${python:Depends},
+Description: Database as a Service for OpenStack - API server
+ Trove is Database as a Service for Openstack. It's designed to run entirely on
+ OpenStack, with the goal of allowing users to quickly and easily utilize the
+ features of a relational database without the burden of handling complex
+ administrative tasks. Cloud users and database administrators can provision
+ and manage multiple database instances as needed. Initially, the service will
+ focus on providing resource isolation at high performance while automating
+ complex administrative tasks including deployment, configuration, patching,
+ backups, restores, and monitoring. Trove is designed to support a
+ single-tenant database within a Nova instance. There is no restrictions on how
+ Nova is configured, since Trove interacts with other OpenStack components
+ purely through the API.
+ .
+ This package provides the Trove API server. The trove-api service provides a
+ RESTful API that supports JSON and XML to provision and manage Trove
+ instances.
+
+Package: trove-guestagent
+Architecture: all
+Depends: trove-common,
+         ${misc:Depends},
+         ${python:Depends},
+Description: Database as a Service for OpenStack - guest agent
+ Trove is Database as a Service for Openstack. It's designed to run entirely on
+ OpenStack, with the goal of allowing users to quickly and easily utilize the
+ features of a relational database without the burden of handling complex
+ administrative tasks. Cloud users and database administrators can provision
+ and manage multiple database instances as needed. Initially, the service will
+ focus on providing resource isolation at high performance while automating
+ complex administrative tasks including deployment, configuration, patching,
+ backups, restores, and monitoring. Trove is designed to support a
+ single-tenant database within a Nova instance. There is no restrictions on how
+ Nova is configured, since Trove interacts with other OpenStack components
+ purely through the API.
+ .
+ This package provides the Trove guest agent. The guestagent is a service that
+ runs within the guest instance, responsible for managing and performing
+ operations on the Database itself. The Guest Agent listens for RPC messages
+ through the message bus and performs the requested operation.
+
+Package: trove-taskmanager
+Architecture: all
+Depends: trove-common,
+         ${misc:Depends},
+         ${python:Depends},
+Description: Database as a Service for OpenStack - taskmanager
+ Trove is Database as a Service for Openstack. It's designed to run entirely on
+ OpenStack, with the goal of allowing users to quickly and easily utilize the
+ features of a relational database without the burden of handling complex
+ administrative tasks. Cloud users and database administrators can provision
+ and manage multiple database instances as needed. Initially, the service will
+ focus on providing resource isolation at high performance while automating
+ complex administrative tasks including deployment, configuration, patching,
+ backups, restores, and monitoring. Trove is designed to support a
+ single-tenant database within a Nova instance. There is no restrictions on how
+ Nova is configured, since Trove interacts with other OpenStack components
+ purely through the API.
+ .
+ This package provides the Trove taskmanager. The trove-taskmanager service
+ does the heavy lifting as far as provisioning instances, managing the
+ lifecycle of instances, and performing operations on the Database instance.
+
+Package: trove-conductor
+Architecture: all
+Depends: trove-common,
+         ${misc:Depends},
+         ${python:Depends},
+Description: Database as a Service for OpenStack - conductor
+ Trove is Database as a Service for Openstack. It's designed to run entirely on
+ OpenStack, with the goal of allowing users to quickly and easily utilize the
+ features of a relational database without the burden of handling complex
+ administrative tasks. Cloud users and database administrators can provision
+ and manage multiple database instances as needed. Initially, the service will
+ focus on providing resource isolation at high performance while automating
+ complex administrative tasks including deployment, configuration, patching,
+ backups, restores, and monitoring. Trove is designed to support a
+ single-tenant database within a Nova instance. There is no restrictions on how
+ Nova is configured, since Trove interacts with other OpenStack components
+ purely through the API.
+ .
+ This package provides the Trove conductor.

@@ -1,0 +1,26 @@
+#!/bin/sh
+
+set -e
+
+if [ "$1" = "configure" ] ; then
+    if ! getenv group trove > /dev/null 2>&1; then
+        addgroup --system trove >/dev/null
+    fi
+    if ! getenv passwd trove > /dev/null 2>&1; then
+        adduser --system --home /var/lib/trove --ingroup trove --no-create-home \
+            --shell /bin/false trove
+    fi
+
+    chown -R trove:adm /var/log/trove
+    chmod 0750 /var/log/trove
+
+    chown trove:trove /var/lib/trove
+
+    if grep -qE "^(sql_)?connection.*sqlite.*" /etc/trove/trove.conf; then
+        su -s /bin/sh -c "trove-manage db_sync" trove
+    fi
+fi
+
+#DEBHELPER#
+
+exit 0

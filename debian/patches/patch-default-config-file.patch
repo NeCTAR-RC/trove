@@ -1,0 +1,116 @@
+--- a/etc/trove/trove-conductor.conf.sample
++++ b/etc/trove/trove-conductor.conf.sample
+@@ -1,7 +1,9 @@
+ [DEFAULT]
+-verbose = True
+-debug = True
++verbose = False
++debug = False
+ trove_auth_url = http://0.0.0.0:5000/v2.0
++connection = sqlite:////var/lib/trove/trove.sqlite
++
+ 
+ # The manager class to use for conductor. (string value)
+ conductor_manager = trove.conductor.manager.Manager
+@@ -53,7 +55,7 @@
+ 
+ # The RabbitMQ password. (string value)
+ # Deprecated group/name - [DEFAULT]/rabbit_password
+-rabbit_password=f7999d1955c5014aa32c
++#rabbit_password=f7999d1955c5014aa32c
+ 
+ # The RabbitMQ virtual host. (string value)
+ # Deprecated group/name - [DEFAULT]/rabbit_virtual_host
+--- a/etc/trove/trove.conf.sample
++++ b/etc/trove/trove.conf.sample
+@@ -1,9 +1,9 @@
+ [DEFAULT]
+ # Show more verbose log output (sets INFO log level output)
+-verbose = True
++verbose = False
+ 
+ # Show debugging output in logs (sets DEBUG log level output)
+-debug = True
++debug = False
+ 
+ # Address to bind the API server
+ bind_host = 0.0.0.0
+@@ -149,7 +149,8 @@
+ # registry server. Any valid SQLAlchemy connection string is fine.
+ # See: http://www.sqlalchemy.org/docs/05/reference/sqlalchemy/connections.html#sqlalchemy.create_engine
+ # connection = sqlite:///trove_test.sqlite
+-connection = mysql://root:e1a2c042c828d3566d0a@localhost/trove
++connection = sqlite:////var/lib/trove/trove_test.sqlite
++#connection = mysql://root:e1a2c042c828d3566d0a@localhost/trove
+ #connection = postgresql://trove:trove@localhost/trove
+ 
+ # Period in seconds after which SQLAlchemy should reestablish its connection
+@@ -205,7 +206,7 @@
+ 
+ # The RabbitMQ password. (string value)
+ # Deprecated group/name - [DEFAULT]/rabbit_password
+-rabbit_password=f7999d1955c5014aa32c
++#rabbit_password=f7999d1955c5014aa32c
+ 
+ # The RabbitMQ virtual host. (string value)
+ # Deprecated group/name - [DEFAULT]/rabbit_virtual_host
+@@ -312,4 +313,4 @@
+ 
+ # Indicate which header field names may be used during the actual request.
+ # (list value)
+-#allow_headers = X-Auth-Token, X-Identity-Status, X-Roles, X-Service-Catalog, X-User-Id, X-Tenant-Id, X-OpenStack-Request-ID
+\ No newline at end of file
++#allow_headers = X-Auth-Token, X-Identity-Status, X-Roles, X-Service-Catalog, X-User-Id, X-Tenant-Id, X-OpenStack-Request-ID
+--- a/etc/trove/trove-guestagent.conf.sample
++++ b/etc/trove/trove-guestagent.conf.sample
+@@ -87,7 +87,7 @@
+ [oslo_messaging_rabbit]
+ # The RabbitMQ broker address where a single node is used. (string value)
+ # Deprecated group/name - [DEFAULT]/rabbit_host
+-rabbit_host=10.0.0.1
++#rabbit_host=10.0.0.1
+ 
+ # The RabbitMQ broker port where a single node is used. (integer value)
+ # Deprecated group/name - [DEFAULT]/rabbit_port
+@@ -107,7 +107,7 @@
+ 
+ # The RabbitMQ password. (string value)
+ # Deprecated group/name - [DEFAULT]/rabbit_password
+-rabbit_password=f7999d1955c5014aa32c
++#rabbit_password=f7999d1955c5014aa32c
+ 
+ # The RabbitMQ virtual host. (string value)
+ # Deprecated group/name - [DEFAULT]/rabbit_virtual_host
+--- a/etc/trove/trove-taskmanager.conf.sample
++++ b/etc/trove/trove-taskmanager.conf.sample
+@@ -1,9 +1,9 @@
+ [DEFAULT]
+ # Show more verbose log output (sets INFO log level output)
+-verbose = True
++verbose = False
+ 
+ # Show debugging output in logs (sets DEBUG log level output)
+-debug = True
++debug = False
+ 
+ # Update the service and instance statuses if the instances fails to become
+ # active within the configured usage_timeout.
+@@ -166,7 +166,8 @@
+ # SQLAlchemy connection string for the reference implementation
+ # registry server. Any valid SQLAlchemy connection string is fine.
+ # See: http://www.sqlalchemy.org/docs/05/reference/sqlalchemy/connections.html#sqlalchemy.create_engine
+-connection = mysql://root:e1a2c042c828d3566d0a@localhost/trove
++#connection = mysql://root:e1a2c042c828d3566d0a@localhost/trove
++connection = sqlite:////var/lib/trove/trove.sqlite
+ # connection = mysql://root:root@localhost/trove
+ 
+ # Period in seconds after which SQLAlchemy should reestablish its connection
+@@ -212,7 +213,7 @@
+ 
+ # The RabbitMQ password. (string value)
+ # Deprecated group/name - [DEFAULT]/rabbit_password
+-rabbit_password=f7999d1955c5014aa32c
++#rabbit_password=f7999d1955c5014aa32c
+ 
+ # The RabbitMQ virtual host. (string value)
+ # Deprecated group/name - [DEFAULT]/rabbit_virtual_host

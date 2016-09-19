@@ -1,0 +1,6 @@
+#!/usr/bin/dh-exec
+etc/trove/api-paste.ini etc/trove
+etc/trove/trove.conf.sample => etc/trove/trove.conf
+etc/trove/conf.d
+usr/bin/trove-manage
+usr/bin/trove-fake-mode

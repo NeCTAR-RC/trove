@@ -1,0 +1,22 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          trove-guestagent
+# Required-Start:    $network $local_fs $remote_fs $syslog
+# Required-Stop:     $remote_fs
+# Should-Start:      postgresql mysql keystone rabbitmq-server ntp
+# Should-Stop:       postgresql mysql keystone rabbitmq-server ntp
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Trove Guest Agent
+# Description:       Trove Guest Agent
+### END INIT INFO
+
+# Author: Thomas Goirand <zigo@debian.org>
+
+# PATH should only include /usr/* if it runs after the mountnfs.sh script
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="Openstack Trove Guest Agent"
+PROJECT_NAME=trove
+NAME=${PROJECT_NAME}-guestagent
+NO_OPENSTACK_CONFIG_FILE_DAEMON_ARG=yes
+DAEMON_ARGS="--config-dir=/etc/trove/conf.d"

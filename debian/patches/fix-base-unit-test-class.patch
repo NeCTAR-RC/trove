@@ -1,0 +1,21 @@
+Description: Work around exception when searching for mock references in
+             base unit test class.
+             https://bugs.launchpad.net/trove/+bug/1470251
+Author: Corey Bryant <corey.bryant@canonical.com>
+Forwarded: No
+Last-Update: 2015-07-01
+
+--- a/trove/tests/unittests/trove_testtools.py
++++ b/trove/tests/unittests/trove_testtools.py
+@@ -119,7 +119,10 @@
+     def _find_mock_refs(self):
+         discovered_mocks = set()
+         for module_name, module in self._get_loaded_modules().items():
+-            self._find_mocks(module_name, module, discovered_mocks, 1)
++            try:
++                self._find_mocks(module_name, module, discovered_mocks, 1)
++            except RuntimeError:
++                pass
+ 
+         return discovered_mocks
+ 
