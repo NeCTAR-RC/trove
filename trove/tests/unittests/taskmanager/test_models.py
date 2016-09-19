@@ -366,7 +366,9 @@ class FreshInstanceTasksTest(BaseFreshInstanceTasksTest):
                                                 'volume_type', None,
                                                 {'group': 'sg-id'})
         mock_create_secgroup.assert_called_with('mysql')
-        mock_build_volume_info.assert_called_with('mysql', volume_size=2,
+        mock_build_volume_info.assert_called_with('mysql',
+                                                  availability_zone=None,
+                                                  volume_size=2,
                                                   volume_type='volume_type')
         mock_guest_prepare.assert_called_with(
             768, mock_build_volume_info(), 'mysql-server', None, None, None,
