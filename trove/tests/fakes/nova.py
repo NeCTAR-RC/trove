@@ -412,7 +412,7 @@ class FakeServerVolumes(object):
 class FakeVolume(object):
 
     def __init__(self, parent, owner, id, size, name,
-                 description, volume_type):
+                 description, volume_type, availability_zone):
         self.attachments = []
         self.parent = parent
         self.owner = owner  # This is a context.
@@ -425,6 +425,7 @@ class FakeVolume(object):
         # point.
         self.device = "vdb"
         self.volume_type = volume_type
+        self.availability_zone = availability_zone
 
     def __repr__(self):
         msg = ("FakeVolume(id=%s, size=%s, name=%s, "
@@ -432,10 +433,6 @@ class FakeVolume(object):
         params = (self.id, self.size, self.name,
                   self.description, self._current_status)
         return (msg % params)
-
-    @property
-    def availability_zone(self):
-        return "fake-availability-zone"
 
     @property
     def created_at(self):
@@ -499,10 +496,11 @@ class FakeVolumes(object):
             else:
                 raise nova_exceptions.NotFound(404, "Bad permissions")
 
-    def create(self, size, name=None, description=None, volume_type=None):
+    def create(self, size, name=None, description=None, volume_type=None,
+               availability_zone=None):
         id = "FAKE_VOL_%s" % uuid.uuid4()
         volume = FakeVolume(self, self.context, id, size, name,
-                            description, volume_type)
+                            description, volume_type, availability_zone)
         self.db[id] = volume
         if size == 9:
             volume.schedule_status("error", 2)
