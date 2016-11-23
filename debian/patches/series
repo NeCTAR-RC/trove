@@ -1,2 +1,3 @@
 skip-failing-tests.patch
 skip-tests.patch
+fix-manifest.patch

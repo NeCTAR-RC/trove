@@ -1,0 +1,20 @@
+diff --git a/MANIFEST.in b/MANIFEST.in
+new file mode 100644
+index 0000000..a747d44
+--- /dev/null
++++ b/MANIFEST.in
+@@ -0,0 +1,14 @@
++include AUTHORS
++include ChangeLog
++
++include trove/db/sqlalchemy/migrate_repo/migrate.cfg
++include trove/db/sqlalchemy/migrate_repo/README
++include trove/db/sqlalchemy/migrate_repo/versions/*.sql
++include etc/trove/*.*
++
++exclude .gitignore
++exclude .gitreview
++
++global-exclude *.pyc
++
++recursive-include trove *
