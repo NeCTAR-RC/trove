@@ -1,0 +1,10 @@
+diff --git a/MANIFEST.in b/MANIFEST.in
+index fec765c..a747d44 100644
+--- a/MANIFEST.in
++++ b/MANIFEST.in
+@@ -10,3 +10,5 @@ exclude .gitignore
+ exclude .gitreview
+ 
+ global-exclude *.pyc
++
++recursive-include trove *

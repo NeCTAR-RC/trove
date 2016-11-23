@@ -2,3 +2,4 @@ skip-failing-tests.patch
 skip-tests.patch
 fix-base-unit-test-class.patch
 patch-default-config-file.patch
+fix-manifest.patch
