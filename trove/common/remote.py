@@ -100,7 +100,8 @@ def nova_client(context, region_name=None):
                     tenant_id=context.tenant,
                     project_domain_name=context.project_domain_name,
                     auth_url=CONF.trove_auth_url,
-                    auth_token=context.auth_token)
+                    auth_token=context.auth_token,
+                    insecure=CONF.nova_api_insecure)
     client.client.auth_token = context.auth_token
     client.client.management_url = url
     return client
@@ -128,7 +129,8 @@ def cinder_client(context, region_name=None):
 
     client = CinderClient.Client(context.user, context.auth_token,
                                  project_id=context.tenant,
-                                 auth_url=CONF.trove_auth_url)
+                                 auth_url=CONF.trove_auth_url,
+                                 insecure=CONF.cinder_api_insecure)
     client.client.auth_token = context.auth_token
     client.client.management_url = url
     return client
@@ -148,7 +150,8 @@ def swift_client(context, region_name=None):
     client = Connection(preauthurl=url,
                         preauthtoken=context.auth_token,
                         tenant_name=context.tenant,
-                        snet=CONF.backup_use_snet)
+                        snet=CONF.backup_use_snet,
+                        insecure=CONF.swift_api_insecure)
     return client
 
 
@@ -164,7 +167,8 @@ def neutron_client(context, region_name=None):
                            endpoint_type=CONF.neutron_endpoint_type)
 
     client = NeutronClient.Client(token=context.auth_token,
-                                  endpoint_url=url)
+                                  endpoint_url=url,
+                                  insecure=CONF.neutron_api_insecure)
     return client
 
 
