@@ -1,0 +1,4 @@
+Tests: trove-daemons python-trove
+Depends: python-trove, trove-common, trove-api, trove-guestagent,
+ trove-taskmanager, trove-conductor
+Restrictions: needs-root

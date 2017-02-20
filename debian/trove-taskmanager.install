@@ -1,0 +1,4 @@
+#!/usr/bin/dh-exec
+etc/trove/trove-taskmanager.conf.sample => etc/trove/trove-taskmanager.conf
+usr/bin/trove-mgmt-taskmanager
+usr/bin/trove-taskmanager

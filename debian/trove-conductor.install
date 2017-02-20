@@ -1,0 +1,3 @@
+#!/usr/bin/dh-exec
+etc/trove/trove-conductor.conf.sample => etc/trove/trove-conductor.conf
+usr/bin/trove-conductor

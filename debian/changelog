@@ -1,0 +1,487 @@
+openstack-trove (1:7.0.0~rc2-0ubuntu1) zesty; urgency=medium
+
+  [ Chuck Short ]
+  * d/control: Cleanup dependencies. 
+  * d/tests: Add autopkgtest
+
+  [ Corey Bryant ]
+  * New upstream release candidate for OpenStack Ocata.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Fri, 17 Feb 2017 08:50:45 -0500
+
+openstack-trove (1:7.0.0~rc1-0ubuntu1) zesty; urgency=medium
+
+  * debian/patches/unwedge-tests.patch: Dropped no longer needed. 
+  * debian/control: Add python-pep8 as build dependency.
+  * New upstream milestone for Ocata. 
+
+ -- Chuck Short <zulcss@ubuntu.com>  Tue, 07 Feb 2017 14:17:13 -0500
+
+openstack-trove (1:7.0.0~b3-0ubuntu1) zesty; urgency=medium
+
+  * d/trove-common.postinst: Use 'getent' instead of 'getenv'.
+    (LP: #1651852) 
+  * New upstream release.
+  * d/control: Align (Build-)Depends with upstream.
+  * d/patches/unwedge-tests.patch: Skip failing unit tests.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Mon, 30 Jan 2017 09:26:14 -0500
+
+openstack-trove (1:7.0.0~b2-0ubuntu1) zesty; urgency=medium
+
+  [ Chuck Short ]
+  * debian/control: Add python-glancecclient. 
+  * debian/patches/patch-default-config-file.patch: Dropped just
+    install the default.
+
+  [ Corey Bryant ]
+  * d/control: Add python-oslo.policy to (Build-)Depends.
+  * New upstream milestone for OpenStack Ocata.
+  * d/control: Align (Build-)Depends with upstream.
+  * d/p/*: Rebased.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Fri, 16 Dec 2016 15:00:32 -0500
+
+openstack-trove (1:7.0.0~b1-0ubuntu1) zesty; urgency=medium
+
+  [ Chuck Short ]
+  * debian/trove-common.install, debian/troave.commonst.postinst:
+    Create and change permissionson /var/cache/trove. (LP: #1459961) 
+
+  [ Corey Bryant ]
+  * d/trove-common.install, d/trove-common.dirs: Create /var/cache/trove.
+  * New upstream milestone for OpenStack Ocata.
+  * d/control: Align (build-)depends with upstream.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Thu, 17 Nov 2016 20:33:26 -0500
+
+openstack-trove (1:6.0.0-0ubuntu1) yakkety; urgency=medium
+
+  [ Corey Bryant ]
+  * d/control: oslo.log min version level in global-requirements is too low,
+    so set min version to upper-constraints level (LP: #1628883).
+
+  [ Chuck Short ]
+  * New upstream release for Openstack Newton.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Thu, 06 Oct 2016 11:39:29 -0400
+
+openstack-trove (1:6.0.0~rc2-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release candidate for OpenStack Newton.
+  * d/control: Align (build-)depends with upstream.
+  * d/p/*: Rebased.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Wed, 28 Sep 2016 14:02:10 -0400
+
+openstack-trove (1:6.0.0~b3-0ubuntu1) yakkety; urgency=medium
+
+  [ James Page ]
+  * New upstream release.
+  * Add python-xmltodict to (Build-)Depends.
+  * Add python-crypto to Build-Depends.
+
+  [ Corey Bryant ]
+  * New upstream version.
+  * d/rules: Run ostestr with --serial.
+  * New upstream milestone for OpenStack Newton.
+  * d/control: Align (build-)depends with upstream.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Wed, 07 Sep 2016 10:31:18 -0400
+
+openstack-trove (1:6.0.0~b2-0ubuntu1) yakkety; urgency=medium
+
+  [ Corey Bryant ]
+  * New upstream milestone for OpenStack Newton.
+  * d/control: Align (build-)depends with upstream.
+  * d/rules: Run unit tests with ostestr.
+  * d/p/patch-default-config-file.patch: Rebased.
+
+  [ James Page ]
+  * New upstream version.
+  * d/p/fix-base-unit-test-class.patch: Drop, no longer required.
+  * d/*.init.in: Use correct configuration file for each of the trove
+    daemons (LP: #1516471).
+  * d/p/*: Refresh.
+
+  [ David Della Vecchia ]
+  * d/p/skip-failing-tests.patch: Rebased.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Mon, 11 Jul 2016 16:06:09 -0400
+
+openstack-trove (1:5.0.0-0ubuntu1) xenial; urgency=medium
+
+  * New upstream release for OpenStack Mitaka.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Thu, 07 Apr 2016 16:03:58 -0400
+
+openstack-trove (1:5.0.0~rc1-0ubuntu1) xenial; urgency=medium
+
+  * New upstream release candidate for OpenStack Mitaka.
+  * d/control: Align (build-)depends with upstream.
+  * d/p/*: Rebased.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Thu, 24 Mar 2016 08:39:35 -0400
+
+openstack-trove (1:5.0.0~b2-0ubuntu1) xenial; urgency=medium
+
+  * New upstream milestone for OpenStack Mitaka.
+  * d/control: Align (build-)depends with upstream.
+  * d/p/skip-failing-tests.patch: Skip tests that are getting
+    _StringException.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Fri, 22 Jan 2016 18:01:09 -0500
+
+openstack-trove (1:5.0.0~b1-0ubuntu1) xenial; urgency=medium
+
+  * New upstream milestone for OpenStack Mitaka.
+  * d/control: Align (build-)depends with upstream.
+  * d/p/skip-tests.patch: Rebased.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Thu, 17 Dec 2015 12:15:52 -0500
+
+openstack-trove (1:4.0.0-0ubuntu1) wily; urgency=medium
+
+  * New upstream release for OpenStack Liberty.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Thu, 15 Oct 2015 17:22:34 -0400
+
+openstack-trove (1:4.0.0~rc2-0ubuntu1) wily; urgency=medium
+
+  * New upstream release candidate for OpenStack Liberty.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Tue, 06 Oct 2015 11:36:19 -0400
+
+openstack-trove (1:4.0.0~rc1-0ubuntu1) wily; urgency=medium
+
+  * d/watch: Update for upstream rc versioning.
+  * New upstream milestone for OpenStack Liberty.
+  * d/control: Align (build-)depends with upstream.
+  * d/p/*: Refresh.
+
+ -- James Page <james.page@ubuntu.com>  Mon, 28 Sep 2015 14:22:43 +0100
+
+openstack-trove (1:4.0.0~b3-0ubuntu1) wily; urgency=medium
+
+  * New upstream milestone for OpenStack Liberty.
+  * d/control: Align (build-)depends with upstream.
+  * d/p/skip-tests.patch: Rebased.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Tue, 08 Sep 2015 16:02:37 -0400
+
+openstack-trove (1:4.0.0~b2-0ubuntu2) wily; urgency=medium
+
+  * d/control: Add python-pymysql to (build-)depends.
+  * d/p/skip-tests.patch: Skip tests that require mysql-server.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Thu, 03 Sep 2015 09:10:46 -0400
+
+openstack-trove (1:4.0.0~b2-0ubuntu1) wily; urgency=medium
+
+  * New upstream milestone for OpenStack Liberty.
+  * d/control: Align (build-)depends with upstream.
+  * d/p/fix-sslv3-not-supported.patch: Dropped. No longer needed.
+  * d/p/fix-columun-uniqueness.patch: Dropped. Fixed upstream.
+  * d/rules: Remove .eggs directory in override_dh_auto_clean.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Wed, 19 Aug 2015 13:45:54 -0400
+
+openstack-trove (1:4.0.0~b1-0ubuntu3) wily; urgency=medium
+
+  * debian/patches/fix-columun-uniqueness.patch: Fix testsuite with 
+    sqlalchemy 1.0.6. 
+
+ -- Chuck Short <zulcss@ubuntu.com>  Fri, 31 Jul 2015 08:41:28 -0400
+
+openstack-trove (1:4.0.0~b1-0ubuntu2) wily; urgency=medium
+
+  * d/rules: Drop OSLO_PACKAGE_VERSION, not required as we use upstream
+    release tarballs in Ubuntu.
+
+ -- James Page <james.page@ubuntu.com>  Fri, 10 Jul 2015 17:59:31 +0100
+
+openstack-trove (1:4.0.0~b1-0ubuntu1) wily; urgency=medium
+
+  [ Corey Bryant ]
+  * New upstream milestone for OpenStack Liberty.
+    - d/control: Align (build-)depends with upstream.
+    - d/p/fix-intlong-test.patch: Dropped; Fixed upstream.
+    - d/p/fix-sslv3-not-supported.patch: Added to drop sslv3 support.
+    - d/p/fix-base-unit-test-class.patch: Avoid mock search exception.
+    - d/p/fix-tests.patch: Dropped. No longer needed.
+
+  [ James Page ]
+  * Drop openstack-doc-tools and openstack.nose-plugin from BD's as they are
+    not used in the package build.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Fri, 03 Jul 2015 12:23:14 +0100
+
+openstack-trove (2015.1.0-0ubuntu1.2) vivid; urgency=medium
+
+  * d/p/patch-default-config-file.patch: Fix to ensure that path to
+    sqlite database is fully specified (LP: #1451134). 
+
+ -- James Page <james.page@ubuntu.com>  Wed, 13 May 2015 11:55:48 +0100
+
+openstack-trove (2015.1.0-0ubuntu1.1) vivid; urgency=medium
+
+  * d/p/patch-default-config-file.patch: Update default sqlite db file location
+    to ensure that db sync can be run on install (LP: #1451134).
+
+ -- James Page <james.page@ubuntu.com>  Thu, 07 May 2015 16:36:19 +0100
+
+openstack-trove (2015.1.0-0ubuntu1) vivid; urgency=medium
+
+  * New upstream release for OpenStack kilo. (LP: #1449744)
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Thu, 30 Apr 2015 16:01:25 +0200
+
+openstack-trove (2015.1~rc1-0ubuntu2) vivid; urgency=medium
+
+  * Ensure package tests pass on 32 and 64 bit systems (LP: #1446174):
+    - d/p/fix-intlong-test.patch: Check for int *and* long values as valid
+      types for max/min parameters.
+
+ -- James Page <james.page@ubuntu.com>  Mon, 20 Apr 2015 12:20:31 +0100
+
+openstack-trove (2015.1~rc1-0ubuntu1) vivid; urgency=medium
+
+  [ Chuck Short ]
+  * New upstream release.
+    - d/control: Align with upstream dependencies.
+    - d/p/fix-requirements.patch: Dropped
+    - d/p/patch-default-config-file.patch: Rebased
+
+  [ James Page ]
+  * d/rules,control: Tweak unit test execution, add subunit to BD's.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Wed, 15 Apr 2015 14:03:27 -0400
+
+openstack-trove (2015.1~b2-0ubuntu1) vivid; urgency=medium
+
+  [ Corey Bryant ]
+  * New upstream release.
+    - d/control: Align with upstream dependencies.
+    - d/p/fix-requirements.patch: Rebased.
+    - d/p/patch-default-config-file.patch: Rebased.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Fri, 13 Feb 2015 13:04:14 -0500
+
+openstack-trove (2015.1~b1-0ubuntu3) vivid; urgency=medium
+
+  * Rebuild to pick up pkgos upstart generation fix.
+    - d/control: Bump openstack-pkg-tools to ensure upstart fix inclusion.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Wed, 14 Jan 2015 16:28:57 +0000
+
+openstack-trove (2015.1~b1-0ubuntu2) vivid; urgency=medium
+
+  * Systemd enablement:
+    - d/control: Add dh-systemd and openstack-pkg-tools to BD's.
+    - d/rules: Enable use of pkgos, tidyup generated init files.
+    - d/*.init.in: Convert *.init to pkgos template configurations.
+    - d/*.upstart,*.init: Drop in preference to generated files.
+  * d/control,compat: Bump debhelper compat level to 9.
+  * d/*.logrotate,trove-common.logrotate: Move to single logrotate
+    configuration.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Fri, 09 Jan 2015 15:15:12 -0500
+
+openstack-trove (2015.1~b1-0ubuntu1) vivid; urgency=medium
+
+  [ Chuck Short ]
+  * Open up for vivid.
+  * debian/control: Update bzr branches. 
+
+  [ Corey Bryant ]
+  * New upstream release.
+    - d/control: Align requirements with upstream.
+    - d/watch: Update uversionmangle for kilo beta naming.
+    - d/p/fix-requirements: Align requirements with Ubuntu.
+  * d/control: Bumped Standards-Version to 3.9.6.
+
+ -- Corey Bryant <corey.bryant@canonical.com>  Tue, 06 Jan 2015 13:39:46 -0500
+
+openstack-trove (2014.2-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Thu, 16 Oct 2014 14:02:32 -0400
+
+openstack-trove (2014.2~rc3-0ubuntu1) utopic; urgency=medium
+
+  [ Corey Bryant ]
+  * New upstream release candidate.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Wed, 15 Oct 2014 11:17:51 -0400
+
+openstack-trove (2014.2~rc2-0ubuntu1) utopic; urgency=medium
+
+  * New upstream release candidate:
+    - d/p/*: Refresh.
+  * d/watch: Only match versions starting with digits.
+
+ -- James Page <james.page@ubuntu.com>  Mon, 13 Oct 2014 20:47:40 +0100
+
+openstack-trove (2014.2~rc1-0ubuntu1) utopic; urgency=medium
+
+  [ James Page ]
+  * New upstream release candidate:
+    - d/control: Add python-netifaces to BD's.
+
+  [ Chuck Short ]
+  * debian/patches/fix-unit-tests.patch: Fixes random unittest breakage.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Fri, 03 Oct 2014 15:11:06 -0400
+
+openstack-trove (2014.2~b3-0ubuntu2) utopic; urgency=medium
+
+  * d/trove-common.postinst: Ensure permissions are set on /var/lib/trove
+    before completing any db sync operations (LP: #1365561, #1359656). 
+  * d/control: Drop dependency on dbconfig-common, unused.
+  * d/po/*: Drop, not used.
+  * d/trove-*.post*: Tidy up tab/space formatting.
+
+ -- James Page <james.page@ubuntu.com>  Thu, 25 Sep 2014 16:32:57 +0100
+
+openstack-trove (2014.2~b3-0ubuntu1) utopic; urgency=medium
+
+  [ Corey Bryant ]
+  * Enable unit test execution (LP: #1347567):
+    - d/rules: Execute tests during package build.
+    - d/p/skip-tests.patch: Add patch to skip broken tests.
+
+  [ James Page ]
+  * New upstream milestone release.
+  * d/rules: Tidy surplus overrides.
+
+ -- James Page <james.page@ubuntu.com>  Thu, 25 Sep 2014 15:57:16 +0100
+
+openstack-trove (2014.2~b2-0ubuntu1) utopic; urgency=medium
+
+  * New upstream beta for Juno release:
+    - d/p/*: Refreshed.
+    - d/control: Add python-neutronclient to (Build-)Depends.
+
+ -- James Page <james.page@ubuntu.com>  Fri, 01 Aug 2014 10:03:27 +0100
+
+openstack-trove (2014.2~b1-0ubuntu1) utopic; urgency=medium
+
+  [ Chuck Short ]
+  * d/control,trove-conductor.{install,logrotate,upstart}:
+    Add conductor package (LP: #1308523).
+  * d/trove-common.install: Install the correct configuration files
+    (LP: #1308543).
+  * Split out the daemons into their binary packages.
+  * d/rules: Fail if binaries are missing.
+
+  [ James Page ]
+  * New upstream beta for Juno release.
+  * d/control: Update Vcs locations for bzr branch. 
+  * d/control: Version debhelper correctly.
+  * d/control: Bump Standards-Version, no changes. 
+  * d/control: Drop Pre-Depends for xz compression, no longer required. 
+  * d/trove-common.install: Install trove-fake-mode.
+  * d/*.install: Split out configuration files alongside associated daemon
+    binaries.
+  * d/control,*.install: Use dh-exec to rename configuration files
+    during installation.
+  * d/*.logrotate: Add copyrotate option inline with Debian.
+  * d/*.postinst,postrm.*: Tidy obsolete dbconfig and pkg_os from
+    maintainer scripts.
+  * d/trove-common.postinst: Tidy, only run db sync if sqlite is configured
+    fix permissions on /var/log/trove (LP: #1308943).
+  * d/*.init: Re-instate init files from Debian for future systemd migration.
+  * d/trove-conductor.upstart: Use correct configuration file for conductor.
+  * d/p/patch-default-config-file.patch: Correct paths for sqlite DB, tune
+    down default logging level.
+
+ -- James Page <james.page@ubuntu.com>  Wed, 23 Jul 2014 11:14:58 +0100
+
+openstack-trove (2014.1-0ubuntu2) utopic; urgency=medium
+
+  * Rebuild for sqlalchemy 0.9.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Thu, 08 May 2014 11:30:11 -0500
+
+openstack-trove (2014.1-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release (LP: #1299055).
+
+ -- Chuck Short <zulcss@ubuntu.com>  Thu, 17 Apr 2014 05:52:54 -0400
+
+openstack-trove (2014.1~rc1-0ubuntu2) trusty; urgency=medium
+
+  * d/trove-common.{postinst,install}: Fixup syntax error in useradd call
+    and actually install some binaries (LP: #1308387).
+
+ -- James Page <james.page@ubuntu.com>  Wed, 16 Apr 2014 11:19:52 +0100
+
+openstack-trove (2014.1~rc1-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release. (LP: #1299055)
+
+ -- Chuck Short <zulcss@ubuntu.com>  Wed, 02 Apr 2014 08:55:36 -0400
+
+openstack-trove (2014.1~b3-0ubuntu1) trusty; urgency=medium
+
+  * New upstream release. 
+    - Add debian/watch file.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Thu, 06 Mar 2014 14:10:42 -0500
+
+openstack-trove (2014.1~b2-0ubuntu1) trusty; urgency=low
+
+  * New upstream release. 
+  * debian/control:
+    - Dropped build dependencies: openstack-pkg-tools, python-d2to1, python-setuptools-git,
+      python-coverage, python-nose, python-nosexcover, python-openstack.nose-plugin,
+    - Bump versioned deps of: python-pbr, python-cinderclient, python-oslo.config.
+    - Add python-designateclient as a build and runtime dependency.
+    - Remove pre-depends on dpkg.
+    - Add python-passlib as a build dependency.
+  * Dropped files:
+    - debian/gbp.conf
+    - debian/trove-{api,guestagent,taskmanager}.init.
+    - debian/trove-{common, api}.templates
+    - debian/trove-{common, api}.config
+    - debian/patches/fixes-filter-authtoken-config-file.patch
+    - debian/patches/
+  * debian/trove-common.dirs: Create the directories.
+  * debian/trove-common.postisnt: Create the trove user and groups
+    with the approiate permissions.
+  * debian/rules: 
+    - Add get-orig-source.
+    - Add oslo version detection.
+    - Pass build if tests fail.
+  * debian/watch: Update watch file.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Thu, 23 Jan 2014 13:46:30 -0500
+
+openstack-trove (2013.2-2ubuntu1) trusty; urgency=low
+
+  * debian/rules: Temporarily disable doc build because of newer sphinx.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Wed, 11 Dec 2013 12:56:18 -0500
+
+openstack-trove (2013.2-2) unstable; urgency=low
+
+  * Added some Debconf translations, with warm thanks to:
+    - French, Julien Patriarca <leatherface@debian.org> (Closes: #728766).
+    - Russian, Yuri Kozlov <yuray@komyakino.ru> (Closes: #729777).
+    - Portuguese, Américo Monteiro <a_monteiro@gmx.com> (Closes: #729920).
+
+ -- Thomas Goirand <zigo@debian.org>  Sun, 08 Dec 2013 11:03:42 +0800
+
+openstack-trove (2013.2-1) unstable; urgency=low
+
+  * New upstream release.
+  * Fix install of trove-guestagent.conf (Closes: #728157).
+
+ -- Thomas Goirand <zigo@debian.org>  Wed, 23 Oct 2013 01:06:25 +0800
+
+openstack-trove (2013.2~rc1-1) unstable; urgency=low
+
+  * Initial release. (Closes: #724980)
+
+ -- Thomas Goirand <zigo@debian.org>  Mon, 30 Sep 2013 01:27:39 +0800
