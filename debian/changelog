@@ -1,3 +1,9 @@
+openstack-trove (1:7.0.0-0ubuntu1) UNRELEASED; urgency=medium
+
+  * Stable release for Ocata
+
+ -- Andy Botting <andy@andybotting.com>  Wed, 22 Feb 2017 21:47:50 +0000
+
 openstack-trove (1:7.0.0~rc2-0ubuntu1) zesty; urgency=medium
 
   [ Chuck Short ]
