@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "3ae8d1ca_85aac8d2",
+        "filename": "trove/common/single_tenant_remote.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1000077
+      },
+      "writtenOn": "2017-03-09T04:29:46Z",
+      "side": 1,
+      "message": "I was just going to leave it, as this is how it\u0027s done in the rest of the trove codebase.",
+      "parentUuid": "3ae8d1ca_82171e51",
+      "range": {
+        "startLine": 23,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 54
+      },
+      "revId": "38d5fa4d62d9350f3a5820594258dc41763e88cf",
+      "serverId": "f182a8af-62ca-4ceb-ab81-14f8fec9c6c5",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3ae8d1ca_62121264",
         "filename": "trove/common/single_tenant_remote.py",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2017-03-08T23:31:51Z",
       "side": 1,
       "message": "This argument has been added but it\u0027s not used, using CONF.os_region_name instead",
+      "range": {
+        "startLine": 111,
+        "startChar": 40,
+        "endLine": 111,
+        "endChar": 56
+      },
+      "revId": "38d5fa4d62d9350f3a5820594258dc41763e88cf",
+      "serverId": "f182a8af-62ca-4ceb-ab81-14f8fec9c6c5",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3ae8d1ca_65a5bc03",
+        "filename": "trove/common/single_tenant_remote.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1000077
+      },
+      "writtenOn": "2017-03-09T04:29:46Z",
+      "side": 1,
+      "message": "This is only to follow the convention of the methods that these are substituted for compatibiity",
+      "parentUuid": "3ae8d1ca_62121264",
       "range": {
         "startLine": 111,
         "startChar": 40,
