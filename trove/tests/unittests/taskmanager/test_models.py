@@ -22,6 +22,7 @@ from mock import Mock, MagicMock, patch, PropertyMock, call
 from novaclient import exceptions as nova_exceptions
 import novaclient.v2.flavors
 import novaclient.v2.servers
+from oslo_config import cfg
 from swiftclient.client import ClientException
 from testtools.matchers import Equals, Is
 
@@ -173,10 +174,10 @@ class fake_DBInstance(object):
         return self.deleted
 
 
-class FreshInstanceTasksTest(trove_testtools.TestCase):
+class BaseFreshInstanceTasksTest(trove_testtools.TestCase):
 
     def setUp(self):
-        super(FreshInstanceTasksTest, self).setUp()
+        super(BaseFreshInstanceTasksTest, self).setUp()
         mock_instance = patch('trove.instance.models.FreshInstance')
         mock_instance.start()
         self.addCleanup(mock_instance.stop)
@@ -219,31 +220,23 @@ class FreshInstanceTasksTest(trove_testtools.TestCase):
             'create_sec_group_rule')
         self.tm_sgr_create_sgr_mock = self.tm_sgr_create_sgr_patch.start()
         self.addCleanup(self.tm_sgr_create_sgr_patch.stop)
-        self.task_models_conf_patch = patch('trove.taskmanager.models.CONF')
-        self.task_models_conf_mock = self.task_models_conf_patch.start()
-        self.addCleanup(self.task_models_conf_patch.stop)
-        self.inst_models_conf_patch = patch('trove.instance.models.CONF')
-        self.inst_models_conf_mock = self.inst_models_conf_patch.start()
-        self.addCleanup(self.inst_models_conf_patch.stop)
 
     def tearDown(self):
-        super(FreshInstanceTasksTest, self).tearDown()
+        super(BaseFreshInstanceTasksTest, self).tearDown()
         os.remove(self.cloudinit)
         os.remove(self.guestconfig)
         InstanceServiceStatus.find_by = self.orig_ISS_find_by
         DBInstance.find_by = self.orig_DBI_find_by
+
+
+class FreshInstanceTasksTest(BaseFreshInstanceTasksTest):
 
     def test_create_instance_userdata(self):
         cloudinit_location = os.path.dirname(self.cloudinit)
         datastore_manager = os.path.splitext(os.path.basename(self.
                                                               cloudinit))[0]
 
-        def fake_conf_getter(*args, **kwargs):
-            if args[0] == 'cloudinit_location':
-                return cloudinit_location
-            else:
-                return ''
-        self.task_models_conf_mock.get.side_effect = fake_conf_getter
+        cfg.CONF.set_override('cloudinit_location', cloudinit_location)
 
         server = self.freshinstancetasks._create_server(
             None, None, None, datastore_manager, None, None, None)
@@ -251,17 +244,10 @@ class FreshInstanceTasksTest(trove_testtools.TestCase):
 
     @patch.object(DBInstance, 'get_by')
     def test_create_instance_guestconfig(self, patch_get_by):
-        def fake_conf_getter(*args, **kwargs):
-            if args[0] == 'guest_config':
-                return self.guestconfig
-            if args[0] == 'guest_info':
-                return 'guest_info.conf'
-            if args[0] == 'injected_config_location':
-                return '/etc/trove/conf.d'
-            else:
-                return ''
+        cfg.CONF.set_override('guest_config', self.guestconfig)
+        cfg.CONF.set_override('guest_info', 'guest_info.conf')
+        cfg.CONF.set_override('injected_config_location', '/etc/trove/conf.d')
 
-        self.inst_models_conf_mock.get.side_effect = fake_conf_getter
         # execute
         files = self.freshinstancetasks.get_injected_files("test")
         # verify
@@ -275,17 +261,10 @@ class FreshInstanceTasksTest(trove_testtools.TestCase):
 
     @patch.object(DBInstance, 'get_by')
     def test_create_instance_guestconfig_compat(self, patch_get_by):
-        def fake_conf_getter(*args, **kwargs):
-            if args[0] == 'guest_config':
-                return self.guestconfig
-            if args[0] == 'guest_info':
-                return '/etc/guest_info'
-            if args[0] == 'injected_config_location':
-                return '/etc'
-            else:
-                return ''
+        cfg.CONF.set_override('guest_config', self.guestconfig)
+        cfg.CONF.set_override('guest_info', '/etc/guest_info')
+        cfg.CONF.set_override('injected_config_location', '/etc')
 
-        self.inst_models_conf_mock.get.side_effect = fake_conf_getter
         # execute
         files = self.freshinstancetasks.get_injected_files("test")
         # verify
@@ -298,7 +277,6 @@ class FreshInstanceTasksTest(trove_testtools.TestCase):
             files['/etc/trove-guestagent.conf'])
 
     def test_create_instance_with_az_kwarg(self):
-        self.task_models_conf_mock.get.return_value = ''
         # execute
         server = self.freshinstancetasks._create_server(
             None, None, None, None, None, availability_zone='nova', nics=None)
@@ -306,7 +284,6 @@ class FreshInstanceTasksTest(trove_testtools.TestCase):
         self.assertIsNotNone(server)
 
     def test_create_instance_with_az(self):
-        self.task_models_conf_mock.get.return_value = ''
         # execute
         server = self.freshinstancetasks._create_server(
             None, None, None, None, None, 'nova', None)
@@ -314,7 +291,6 @@ class FreshInstanceTasksTest(trove_testtools.TestCase):
         self.assertIsNotNone(server)
 
     def test_create_instance_with_az_none(self):
-        self.task_models_conf_mock.get.return_value = ''
         # execute
         server = self.freshinstancetasks._create_server(
             None, None, None, None, None, None, None)
@@ -328,71 +304,11 @@ class FreshInstanceTasksTest(trove_testtools.TestCase):
     @patch('trove.taskmanager.models.LOG')
     def test_update_status_of_instance_failure(
             self, mock_logging, dbi_find_by_mock, iss_find_by_mock):
-        self.task_models_conf_mock.get.return_value = ''
         self.freshinstancetasks.update_statuses_on_time_out()
         self.assertEqual(ServiceStatuses.FAILED_TIMEOUT_GUESTAGENT,
                          fake_InstanceServiceStatus.find_by().get_status())
         self.assertEqual(InstanceTasks.BUILDING_ERROR_TIMEOUT_GA,
                          fake_DBInstance.find_by().get_task_status())
-
-    def test_create_sg_rules_success(self):
-        datastore_manager = 'mysql'
-        self.task_models_conf_mock.get = Mock(return_value=FakeOptGroup())
-        self.freshinstancetasks._create_secgroup(datastore_manager)
-        self.assertEqual(2, taskmanager_models.SecurityGroupRule.
-                         create_sec_group_rule.call_count)
-
-    def test_create_sg_rules_format_exception_raised(self):
-        datastore_manager = 'mysql'
-        self.task_models_conf_mock.get = Mock(
-            return_value=FakeOptGroup(tcp_ports=['3306', '-3306']))
-        self.freshinstancetasks.update_db = Mock()
-        self.assertRaises(MalformedSecurityGroupRuleError,
-                          self.freshinstancetasks._create_secgroup,
-                          datastore_manager)
-
-    def test_create_sg_rules_success_with_duplicated_port_or_range(self):
-        datastore_manager = 'mysql'
-        self.task_models_conf_mock.get = Mock(
-            return_value=FakeOptGroup(
-                tcp_ports=['3306', '3306', '3306-3307', '3306-3307']))
-        self.freshinstancetasks.update_db = Mock()
-        self.freshinstancetasks._create_secgroup(datastore_manager)
-        self.assertEqual(2, taskmanager_models.SecurityGroupRule.
-                         create_sec_group_rule.call_count)
-
-    def test_create_sg_rules_exception_with_malformed_ports_or_range(self):
-        datastore_manager = 'mysql'
-        self.task_models_conf_mock.get = Mock(
-            return_value=FakeOptGroup(tcp_ports=['A', 'B-C']))
-        self.freshinstancetasks.update_db = Mock()
-        self.assertRaises(MalformedSecurityGroupRuleError,
-                          self.freshinstancetasks._create_secgroup,
-                          datastore_manager)
-
-    def test_create_sg_rules_icmp(self):
-        datastore_manager = 'mysql'
-        self.task_models_conf_mock.get = Mock(
-            return_value=FakeOptGroup(icmp=True))
-        self.freshinstancetasks.update_db = Mock()
-        self.freshinstancetasks._create_secgroup(datastore_manager)
-        self.assertEqual(3, taskmanager_models.SecurityGroupRule.
-                         create_sec_group_rule.call_count)
-
-    @patch.object(BaseInstance, 'update_db')
-    @patch('trove.taskmanager.models.CONF')
-    @patch('trove.taskmanager.models.LOG')
-    def test_error_sec_group_create_instance(self, mock_logging,
-                                             mock_conf, mock_update_db):
-        mock_conf.get = Mock(
-            return_value=FakeOptGroup(tcp_ports=['3306', '-3306']))
-        mock_flavor = {'id': 7, 'ram': 256, 'name': 'smaller_flavor'}
-        self.assertRaisesRegexp(
-            TroveError,
-            'Error creating security group for instance',
-            self.freshinstancetasks.create_instance, mock_flavor,
-            'mysql-image-id', None, None, 'mysql', 'mysql-server', 2,
-            None, None, None, None, Mock(), None, None, None, None, None)
 
     @patch.object(BaseInstance, 'update_db')
     @patch.object(backup_models.Backup, 'get_by_id')
@@ -432,6 +348,10 @@ class FreshInstanceTasksTest(trove_testtools.TestCase):
                              mock_create_server,
                              mock_get_injected_files,
                              *args):
+
+        cfg.CONF.set_override('tcp_ports', ['3306', '3301-3307'],
+                              group='mysql')
+
         mock_flavor = {'id': 8, 'ram': 768, 'name': 'bigger_flavor'}
         config_content = {'config_contents': 'some junk'}
         mock_single_instance_template.return_value.config_contents = (
@@ -492,6 +412,77 @@ class FreshInstanceTasksTest(trove_testtools.TestCase):
             TroveError, 'Error attaching instance',
             self.freshinstancetasks.attach_replication_slave,
             snapshot, mock_flavor)
+
+
+class InstanceSecurityGroupRuleTests(BaseFreshInstanceTasksTest):
+
+    def setUp(self):
+        super(InstanceSecurityGroupRuleTests, self).setUp()
+        self.task_models_conf_patch = patch('trove.taskmanager.models.CONF')
+        self.task_models_conf_mock = self.task_models_conf_patch.start()
+        self.addCleanup(self.task_models_conf_patch.stop)
+        self.inst_models_conf_patch = patch('trove.instance.models.CONF')
+        self.inst_models_conf_mock = self.inst_models_conf_patch.start()
+        self.addCleanup(self.inst_models_conf_patch.stop)
+
+    def test_create_sg_rules_success(self):
+        datastore_manager = 'mysql'
+        self.task_models_conf_mock.get = Mock(return_value=FakeOptGroup())
+        self.freshinstancetasks._create_secgroup(datastore_manager)
+        self.assertEqual(2, taskmanager_models.SecurityGroupRule.
+                         create_sec_group_rule.call_count)
+
+    def test_create_sg_rules_format_exception_raised(self):
+        datastore_manager = 'mysql'
+        self.task_models_conf_mock.get = Mock(
+            return_value=FakeOptGroup(tcp_ports=['3306', '-3306']))
+        self.freshinstancetasks.update_db = Mock()
+        self.assertRaises(MalformedSecurityGroupRuleError,
+                          self.freshinstancetasks._create_secgroup,
+                          datastore_manager)
+
+    def test_create_sg_rules_success_with_duplicated_port_or_range(self):
+        datastore_manager = 'mysql'
+        self.task_models_conf_mock.get = Mock(
+            return_value=FakeOptGroup(
+                tcp_ports=['3306', '3306', '3306-3307', '3306-3307']))
+        self.freshinstancetasks.update_db = Mock()
+        self.freshinstancetasks._create_secgroup(datastore_manager)
+        self.assertEqual(2, taskmanager_models.SecurityGroupRule.
+                         create_sec_group_rule.call_count)
+
+    def test_create_sg_rules_exception_with_malformed_ports_or_range(self):
+        datastore_manager = 'mysql'
+        self.task_models_conf_mock.get = Mock(
+            return_value=FakeOptGroup(tcp_ports=['A', 'B-C']))
+        self.freshinstancetasks.update_db = Mock()
+        self.assertRaises(MalformedSecurityGroupRuleError,
+                          self.freshinstancetasks._create_secgroup,
+                          datastore_manager)
+
+    def test_create_sg_rules_icmp(self):
+        datastore_manager = 'mysql'
+        self.task_models_conf_mock.get = Mock(
+            return_value=FakeOptGroup(icmp=True))
+        self.freshinstancetasks.update_db = Mock()
+        self.freshinstancetasks._create_secgroup(datastore_manager)
+        self.assertEqual(3, taskmanager_models.SecurityGroupRule.
+                         create_sec_group_rule.call_count)
+
+    @patch.object(BaseInstance, 'update_db')
+    @patch('trove.taskmanager.models.CONF')
+    @patch('trove.taskmanager.models.LOG')
+    def test_error_sec_group_create_instance(self, mock_logging,
+                                             mock_conf, mock_update_db):
+        mock_conf.get = Mock(
+            return_value=FakeOptGroup(tcp_ports=['3306', '-3306']))
+        mock_flavor = {'id': 7, 'ram': 256, 'name': 'smaller_flavor'}
+        self.assertRaisesRegexp(
+            TroveError,
+            'Error creating security group for instance',
+            self.freshinstancetasks.create_instance, mock_flavor,
+            'mysql-image-id', None, None, 'mysql', 'mysql-server', 2,
+            None, None, None, None, Mock(), None, None, None, None, None)
 
 
 class ResizeVolumeTest(trove_testtools.TestCase):
