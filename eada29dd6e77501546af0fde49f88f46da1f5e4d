@@ -22,6 +22,52 @@
       "revId": "eada29dd6e77501546af0fde49f88f46da1f5e4d",
       "serverId": "f182a8af-62ca-4ceb-ab81-14f8fec9c6c5",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1ae5cdf2_9a0e9c33",
+        "filename": "integration/scripts/files/elements/ubuntu-mysql/pre-install.d/10-percona-apt-key",
+        "patchSetId": 3
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000082
+      },
+      "writtenOn": "2017-06-20T02:14:59Z",
+      "side": 1,
+      "message": "cruft to be removed",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 25,
+        "endChar": 74
+      },
+      "revId": "eada29dd6e77501546af0fde49f88f46da1f5e4d",
+      "serverId": "f182a8af-62ca-4ceb-ab81-14f8fec9c6c5",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1ae5cdf2_ba127856",
+        "filename": "integration/scripts/files/elements/ubuntu-postgresql/install.d/30-postgresql",
+        "patchSetId": 3
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1000082
+      },
+      "writtenOn": "2017-06-20T02:14:59Z",
+      "side": 1,
+      "message": "Should probably be finding this file location using something like the pg_config utility (assuming that\u0027s still a thing) rather than hard-coding",
+      "range": {
+        "startLine": 81,
+        "startChar": 42,
+        "endLine": 81,
+        "endChar": 78
+      },
+      "revId": "eada29dd6e77501546af0fde49f88f46da1f5e4d",
+      "serverId": "f182a8af-62ca-4ceb-ab81-14f8fec9c6c5",
+      "unresolved": false
     }
   ]
 }
