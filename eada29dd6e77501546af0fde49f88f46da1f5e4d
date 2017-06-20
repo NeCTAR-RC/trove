@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1ae5cdf2_5a041415",
+        "filename": "integration/scripts/files/elements/trove-guestagent/post-install.d/30-register-guestagent-service",
+        "patchSetId": 3
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000082
+      },
+      "writtenOn": "2017-06-20T02:08:58Z",
+      "side": 1,
+      "message": "this doesn\u0027t look right?",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 34
+      },
+      "revId": "eada29dd6e77501546af0fde49f88f46da1f5e4d",
+      "serverId": "f182a8af-62ca-4ceb-ab81-14f8fec9c6c5",
+      "unresolved": false
+    }
+  ]
+}
