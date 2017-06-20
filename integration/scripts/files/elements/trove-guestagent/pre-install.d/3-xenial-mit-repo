@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -e
+set -o xtrace
+
+[ -n "${GUEST_USERNAME}" ] || die "GUEST_USERNAME needs to be set to the user for the guest image"
+[ -n "${RELEASE}" ] || die "RELEASE must be set to either Precise or Quantal"
+
+# Add Percona GPG key
+mkdir -p /home/${GUEST_USERNAME}/.mitpg
+
+# Add mit pgp key
+apt-key adv --keyserver hkp://pgp.mit.edu --recv-keys 391A9AA2147192839E9DB0315EDB1B62EC4926EA
+
+
+cat <<EOL > /etc/apt/sources.list.d/ubuntu-ocata.list
+deb http://ubuntu-cloud.archive.canonical.com/ubuntu xenial-updates/ocata main
+EOL
+
+apt-get update

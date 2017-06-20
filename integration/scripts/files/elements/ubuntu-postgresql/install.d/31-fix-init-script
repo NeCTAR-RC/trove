@@ -1,0 +1,7 @@
+#!/bin/sh
+
+set -e
+set -o xtrace
+
+sed -i "s/PIDFile=\/var\/run\/postgresql\/%i.pid/PIDFile=\/var\/run\/postgresql\/postgresql.pid/" /lib/systemd/system/postgresql@.service
+sed -i "s/#Restart=on-failure/Restart=on-failure/g" /lib/systemd/system/postgresql@.service
