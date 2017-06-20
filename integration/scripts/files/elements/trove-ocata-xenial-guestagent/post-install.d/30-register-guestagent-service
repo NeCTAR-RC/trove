@@ -1,0 +1,39 @@
+# Remove existing trove directory
+rm -rf /etc/trove
+
+# Create Trove config directory
+mkdir -p /etc/trove/conf.d
+chmod 0755 /etc/trove/conf.d
+chown trove:root /etc/trove/conf.d
+
+# Remove any old init scripts
+rm -rf /etc/init.d/trove-guestagent
+rm -rf /etc/init/trove-guestagent.conf
+rm -rf /etc/init/trove-guest.conf
+
+
+# Install new systemd service config
+cat >/lib/systemd/system/trove-guestagent.service <<_EOF_
+[Unit]
+Description=Trove Guestagent
+After=syslog.target network.target cloud-init.service mysql.service postgresql.service
+
+[Service]
+Type=simple
+User=trove
+Group=trove
+
+ExecStartPre=/bin/bash -c "sudo chown -R trove:root /etc/trove"
+ExecStart=/usr/bin/trove-guestagent --config-dir=/etc/trove/conf.d
+
+# Give a reasonable amount of time for the server to start up/shut down
+TimeoutSec=300
+
+# PgSql doesn't play nice with PrivateTmp
+PrivateTmp=false
+
+[Install]
+WantedBy=multi-user.target
+_EOF_
+
+systemctl enable trove-guestagent
