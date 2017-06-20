@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -e
+set -o xtrace
+
+[ -n "${GUEST_USERNAME}" ] || die "GUEST_USERNAME needs to be set to the user for the guest image"
+[ -n "${RELEASE}" ] || die "RELEASE must be set to either Precise or Quantal"
+
+# Add Percona GPG key
+mkdir -p /home/${GUEST_USERNAME}/.mitpg
+
+# sometimes the primary key server is unavailable and we should try an
+# alternate.  see
+# https://bugs.launchpad.net/percona-server/+bug/907789.  Disable
+# shell errexit so we can interrogate the exit code and take action
+# based on the exit code. We will reenable it later.
+
+apt-key adv --keyserver hkp://pgp.mit.edu --recv-keys 391A9AA2147192839E9DB0315EDB1B62EC4926EA
+
+
+cat <<EOL > /etc/apt/sources.list.d/ubuntu-ocata.list
+deb http://ubuntu-cloud.archive.canonical.com/ubuntu xenial-updates/ocata main
+EOL
+
+apt-get update

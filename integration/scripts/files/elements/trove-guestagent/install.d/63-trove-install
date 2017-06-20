@@ -1,0 +1,18 @@
+#!/bin/sh
+
+set -eu
+rootpw="rkFKlvpqs0*d"
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get install trove-guestagent -y
+
+#cat >/etc/sudoers.d/60_trove_guest <<_EOF_
+#trove     ALL=(ALL)       NOPASSWD:ALL
+#_EOF_
+
+#cat >/home/trove/.my.cnf <<_EOF_
+#[client]
+#host = 127.0.0.1
+#password = $rootpw
+#user = os_admin
+#_EOF_

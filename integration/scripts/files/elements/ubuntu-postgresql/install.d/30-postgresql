@@ -77,3 +77,5 @@ apt-get remove -y $dev_pkgs
 # Install the native Python client.
 apt-get --allow-unauthenticated -y install libpq-dev
 pip2 install psycopg2
+
+echo "host all postgres 0.0.0.0/0 md5" >> /etc/postgresql/9.4/main/pg_hba.conf
