@@ -37,6 +37,8 @@ nova_proxy_admin_user =
 nova_proxy_admin_pass =
 nova_proxy_admin_tenant_name =
 nova_proxy_admin_tenant_id =
+nova_proxy_admin_user_domain_name =
+nova_proxy_admin_project_domain_name =
 trove_auth_url =
 nova_compute_service_type =
 nova_compute_url =
@@ -60,6 +62,8 @@ def get_keystone_session():
         username=CONF.nova_proxy_admin_user,
         password=CONF.nova_proxy_admin_pass,
         project_name=CONF.nova_proxy_admin_tenant_name,
+        user_domain_name=CONF.nova_proxy_admin_user_domain_name,
+        project_domain_name=CONF.nova_proxy_admin_project_domain_name,
         auth_url=CONF.trove_auth_url)
 
     ks_session = session.Session(auth=auth)
