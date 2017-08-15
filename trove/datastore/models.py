@@ -874,3 +874,26 @@ class DatastoreVersionMetadata(object):
                     datastore=datastore_name,
                     version_id=datastore_version_name,
                     id=volume_type)
+
+    @classmethod
+    def list_associated_flavors(cls, context):
+        """
+        All nova flavors are permitted for a datastore_version unless
+        one or more entries are found in datastore_version_metadata,
+        in which case only those are permitted.
+        """
+        nova_flavors = create_nova_client(context).flavors.list()
+        bound_flavors = DBDatastoreVersionMetadata.find_all(deleted=False)
+        if (bound_flavors.count() != 0):
+            bound_flavors = tuple(f.value for f in bound_flavors)
+            # Generate a filtered list of nova flavors
+            ds_nova_flavors = (f for f in nova_flavors
+                               if f.id in bound_flavors)
+            associated_flavors = tuple(flavor_model(flavor=item)
+                                       for item in ds_nova_flavors)
+        else:
+            # Return all nova flavors if no flavor metadata found
+            # for datastore_version.
+            associated_flavors = tuple(flavor_model(flavor=item)
+                                       for item in nova_flavors)
+        return associated_flavors
