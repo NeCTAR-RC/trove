@@ -458,6 +458,9 @@ common_opts = [
                help='Key (OpenSSL aes_cbc) to encrypt instance keys in DB.'),
     cfg.StrOpt('instance_rpc_encr_key',
                help='Key (OpenSSL aes_cbc) for instance RPC encryption.'),
+    cfg.StrOpt('flavor_filter', default=None,
+               help='Filter flavor list to only show flavors with the given'
+                    'metadata key.'),
 ]
 
 
