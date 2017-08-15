@@ -75,8 +75,9 @@ class Flavor(object):
 class Flavors(NovaRemoteModelBase):
 
     def __init__(self, context):
-        nova_flavors = create_nova_client(context).flavors.list()
-        self.flavors = [Flavor(flavor=item) for item in nova_flavors]
+        from trove.datastore.models import DatastoreVersionMetadata
+        self.flavors = DatastoreVersionMetadata.list_associated_flavors(
+            context)
 
     def __iter__(self):
         for item in self.flavors:
