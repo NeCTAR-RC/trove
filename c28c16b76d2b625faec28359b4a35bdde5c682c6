@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1ae5cdf2_a0ccf936",
+        "filename": "trove/common/cfg.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 463,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2017-08-16T00:38:38Z",
+      "side": 1,
+      "message": "should be key exists",
+      "range": {
+        "startLine": 463,
+        "startChar": 30,
+        "endLine": 463,
+        "endChar": 47
+      },
+      "revId": "c28c16b76d2b625faec28359b4a35bdde5c682c6",
+      "serverId": "f182a8af-62ca-4ceb-ab81-14f8fec9c6c5",
+      "unresolved": false
+    }
+  ]
+}
