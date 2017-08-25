@@ -30,7 +30,7 @@ from testtools.matchers import Equals, Is
 import trove.backup.models
 from trove.backup import models as backup_models
 from trove.backup import state
-import trove.common.context
+from trove.common.context import TroveContext
 from trove.common.exception import GuestError
 from trove.common.exception import MalformedSecurityGroupRuleError
 from trove.common.exception import PollTimeOut
@@ -76,13 +76,14 @@ class fake_Server(object):
         self.flavor_id = None
         self.files = None
         self.userdata = None
+        self.meta = None
         self.security_groups = None
         self.block_device_mapping_v2 = None
         self.status = 'ACTIVE'
 
 
 class fake_ServerManager(object):
-    def create(self, name, image_id, flavor_id, files, userdata,
+    def create(self, name, image_id, flavor_id, files, userdata, meta,
                security_groups, block_device_mapping_v2=None,
                availability_zone=None,
                nics=None, config_drive=False,
@@ -207,6 +208,7 @@ class BaseFreshInstanceTasksTest(trove_testtools.TestCase):
             f.write(self.guestconfig_content)
         self.freshinstancetasks = taskmanager_models.FreshInstanceTasks(
             None, Mock(), None, None)
+        self.freshinstancetasks.context = TroveContext(user='test_user')
         self.tm_sg_create_inst_patch = patch.object(
             trove.taskmanager.models.SecurityGroup, 'create_for_instance',
             Mock(return_value={'id': uuid.uuid4(), 'name': uuid.uuid4()}))
@@ -741,7 +743,7 @@ class BuiltInstanceTasksTest(trove_testtools.TestCase):
         self.addCleanup(self.dm_ds_load_patch.stop)
 
         self.instance_task = taskmanager_models.BuiltInstanceTasks(
-            trove.common.context.TroveContext(),
+            TroveContext(),
             db_instance,
             stub_nova_server,
             InstanceServiceStatus(ServiceStatuses.RUNNING,
