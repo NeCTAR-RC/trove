@@ -30,7 +30,7 @@ from testtools.matchers import Equals, Is
 import trove.backup.models
 from trove.backup import models as backup_models
 from trove.backup import state
-import trove.common.context
+from trove.common.context import TroveContext
 from trove.common.exception import GuestError
 from trove.common.exception import PollTimeOut
 from trove.common.exception import TroveError
@@ -74,17 +74,19 @@ class fake_Server(object):
         self.flavor_id = None
         self.files = None
         self.userdata = None
+        self.meta = None
         self.block_device_mapping_v2 = None
         self.status = 'HEALTHY'
         self.key_name = None
 
 
 class fake_ServerManager(object):
+
     def create(self, name, image_id, flavor_id, files, userdata,
                block_device_mapping_v2=None,
                availability_zone=None,
                nics=None, config_drive=False,
-               scheduler_hints=None, key_name=None):
+               scheduler_hints=None, key_name=None, meta=None):
         server = fake_Server()
         server.id = "server_id"
         server.name = name
@@ -96,7 +98,7 @@ class fake_ServerManager(object):
         server.availability_zone = availability_zone
         server.nics = nics
         server.key_name = key_name
-
+        server.meta = meta
         return server
 
 
@@ -301,6 +303,10 @@ class FreshInstanceTasksTest(BaseFreshInstanceTasksTest):
         mock_servers_create = mock_nova_client.servers.create
         self.freshinstancetasks._create_server('fake-flavor', 'fake-image',
                                                'mysql', None, None, None)
+        meta = {'project_id': self.freshinstancetasks.tenant_id,
+                'user_id': 'test_user',
+                'trove_id': self.freshinstancetasks.id,
+        }
         mock_servers_create.assert_called_with(
             'fake-hostname', 'fake-image',
             'fake-flavor', files={},
@@ -310,7 +316,8 @@ class FreshInstanceTasksTest(BaseFreshInstanceTasksTest):
             nics=None,
             config_drive=True,
             scheduler_hints=None,
-            key_name=None
+            key_name=None,
+            meta=meta,
         )
 
     @patch.object(InstanceServiceStatus, 'find_by',
@@ -737,7 +744,7 @@ class BuiltInstanceTasksTest(trove_testtools.TestCase):
         self.addCleanup(self.dm_ds_load_patch.stop)
 
         self.instance_task = taskmanager_models.BuiltInstanceTasks(
-            trove.common.context.TroveContext(),
+            TroveContext(),
             db_instance,
             stub_nova_server,
             InstanceServiceStatus(ServiceStatuses.RUNNING,
