@@ -748,13 +748,16 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
             volume_ref = {'size': volume_size, 'name': volume_name,
                           'description': volume_desc}
             config_drive = CONF.use_nova_server_config_drive
+            metadata = {'project_id': self.tenant_id,
+                        'user_id': self.context.user}
             server = self.nova_client.servers.create(
                 name, image_id, flavor_id,
                 files=files, volume=volume_ref,
                 security_groups=security_groups,
                 availability_zone=availability_zone,
                 nics=nics, config_drive=config_drive,
-                userdata=userdata, scheduler_hints=scheduler_hints)
+                userdata=userdata, meta=metadata,
+                scheduler_hints=scheduler_hints)
             server_dict = server._info
             LOG.debug("Created new compute instance %(server_id)s "
                       "for id: %(id)s\nServer response: %(response)s" %
@@ -1029,15 +1032,18 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
                        availability_zone, nics, files={},
                        scheduler_hints=None):
         userdata = self._prepare_userdata(datastore_manager)
+        metadata = {'project_id': self.tenant_id,
+                    'user_id': self.context.user}
         name = self.hostname or self.name
         bdmap = block_device_mapping
         config_drive = CONF.use_nova_server_config_drive
 
         server = self.nova_client.servers.create(
             name, image_id, flavor_id, files=files, userdata=userdata,
-            security_groups=security_groups, block_device_mapping=bdmap,
-            availability_zone=availability_zone, nics=nics,
-            config_drive=config_drive, scheduler_hints=scheduler_hints)
+            meta=metadata, security_groups=security_groups,
+            block_device_mapping=bdmap, availability_zone=availability_zone,
+            nics=nics, config_drive=config_drive,
+            scheduler_hints=scheduler_hints)
         LOG.debug("Created new compute instance %(server_id)s "
                   "for instance %(id)s" %
                   {'server_id': server.id, 'id': self.id})
