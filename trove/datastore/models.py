@@ -705,8 +705,8 @@ class DatastoreVersionMetadata(object):
 
     @classmethod
     def list_datastore_version_flavor_associations(cls, context,
-                                                   datastore_type,
-                                                   datastore_version_id):
+                                                   datastore_type=None,
+                                                   datastore_version_id=None):
         if datastore_type and datastore_version_id:
             """
             All nova flavors are permitted for a datastore_version unless
@@ -718,27 +718,29 @@ class DatastoreVersionMetadata(object):
             # If datastore_version_id and flavor key exists in the
             # metadata table return all the associated flavors for
             # that datastore version.
-            nova_flavors = create_nova_client(context).flavors.list()
             bound_flavors = DBDatastoreVersionMetadata.find_all(
                 datastore_version_id=datastore_version.id,
                 key='flavor', deleted=False
             )
-            if (bound_flavors.count() != 0):
-                bound_flavors = tuple(f.value for f in bound_flavors)
-                # Generate a filtered list of nova flavors
-                ds_nova_flavors = (f for f in nova_flavors
-                                   if f.id in bound_flavors)
-                associated_flavors = tuple(flavor_model(flavor=item)
-                                           for item in ds_nova_flavors)
-            else:
-                # Return all nova flavors if no flavor metadata found
-                # for datastore_version.
-                associated_flavors = tuple(flavor_model(flavor=item)
-                                           for item in nova_flavors)
-            return associated_flavors
         else:
-            msg = _("Specify both the datastore and datastore_version_id.")
-            raise exception.BadRequest(msg)
+            bound_flavors = DBDatastoreVersionMetadata.find_all(
+                key='flavor', deleted=False)
+
+        nova_flavors = create_nova_client(context).flavors.list()
+
+        if (bound_flavors.count() != 0):
+            bound_flavors = tuple(f.value for f in bound_flavors)
+            # Generate a filtered list of nova flavors
+            ds_nova_flavors = (f for f in nova_flavors
+                               if f.id in bound_flavors)
+            associated_flavors = tuple(flavor_model(flavor=item)
+                                       for item in ds_nova_flavors)
+        else:
+            # Return all nova flavors if no flavor metadata found
+            # for datastore_version.
+            associated_flavors = tuple(flavor_model(flavor=item)
+                                       for item in nova_flavors)
+        return associated_flavors
 
     @classmethod
     def add_datastore_version_volume_type_association(cls, datastore_name,
