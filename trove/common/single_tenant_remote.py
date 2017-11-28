@@ -17,9 +17,12 @@
 from trove.common import cfg
 from trove.common.remote import normalize_url
 
+from keystoneauth1 import loading
+from keystoneauth1 import session
+
 from cinderclient.v2 import client as CinderClient
 from neutronclient.v2_0 import client as NeutronClient
-from novaclient.v1_1.client import Client as NovaClient
+from novaclient.client import Client as NovaClient
 
 CONF = cfg.CONF
 
@@ -33,6 +36,9 @@ single_tenant_remote config to work correctly.
 nova_proxy_admin_user =
 nova_proxy_admin_pass =
 nova_proxy_admin_tenant_name =
+nova_proxy_admin_tenant_id =
+nova_proxy_admin_user_domain_name =
+nova_proxy_admin_project_domain_name =
 trove_auth_url =
 nova_compute_service_type =
 nova_compute_url =
@@ -50,21 +56,34 @@ remote_neutron_client = \
 """
 
 
+def get_keystone_session():
+    loader = loading.get_plugin_loader('password')
+    auth = loader.load_from_options(
+        username=CONF.nova_proxy_admin_user,
+        password=CONF.nova_proxy_admin_pass,
+        project_name=CONF.nova_proxy_admin_tenant_name,
+        user_domain_name=CONF.nova_proxy_admin_user_domain_name,
+        project_domain_name=CONF.nova_proxy_admin_project_domain_name,
+        auth_url=CONF.trove_auth_url)
+
+    ks_session = session.Session(auth=auth)
+    return ks_session
+
+
 def nova_client_trove_admin(context, region_name=None, compute_url=None):
     """
     Returns a nova client object with the trove admin credentials
     :param context: original context from user request
     :type context: trove.common.context.TroveContext
     :return novaclient: novaclient with trove admin credentials
-    :rtype: novaclient.v1_1.client.Client
+    :rtype: novaclient.client.Client
     """
 
     compute_url = compute_url or CONF.nova_compute_url
 
-    client = NovaClient(CONF.nova_proxy_admin_user,
-                        CONF.nova_proxy_admin_pass,
-                        CONF.nova_proxy_admin_tenant_name,
-                        auth_url=CONF.trove_auth_url,
+    ks_session = get_keystone_session()
+    client = NovaClient(CONF.nova_client_version,
+                        session=ks_session,
                         service_type=CONF.nova_compute_service_type,
                         region_name=region_name or CONF.os_region_name)
 
@@ -83,10 +102,8 @@ def cinder_client_trove_admin(context=None):
     :type context: trove.common.context.TroveContext
     :return cinderclient: cinderclient with trove admin credentials
     """
-    client = CinderClient.Client(CONF.nova_proxy_admin_user,
-                                 CONF.nova_proxy_admin_pass,
-                                 project_id=CONF.nova_proxy_admin_tenant_name,
-                                 auth_url=CONF.trove_auth_url,
+    ks_session = get_keystone_session()
+    client = CinderClient.Client(session=ks_session,
                                  service_type=CONF.cinder_service_type,
                                  region_name=CONF.os_region_name)
 
@@ -104,11 +121,9 @@ def neutron_client_trove_admin(context=None):
     :type context: trove.common.context.TroveContext
     :return neutronclient: neutronclient with trove admin credentials
     """
+    ks_session = get_keystone_session()
     client = NeutronClient.Client(
-        username=CONF.nova_proxy_admin_user,
-        password=CONF.nova_proxy_admin_pass,
-        tenant_name=CONF.nova_proxy_admin_tenant_name,
-        auth_url=CONF.trove_auth_url,
+        session=ks_session,
         service_type=CONF.neutron_service_type,
         region_name=CONF.os_region_name)
 
