@@ -1,0 +1,7 @@
+diff --git a/MANIFEST.in b/MANIFEST.in
+new file mode 100644
+index 0000000..d9f9c86
+--- /dev/null
++++ b/MANIFEST.in
+@@ -0,0 +1 @@
++recursive-include trove/templates *
