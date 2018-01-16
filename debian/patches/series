@@ -1,4 +1,4 @@
 skip-failing-tests.patch
 skip-tests.patch
 guestagent-logdir.patch
-fix-templates.patch
+install-non-python-files.patch

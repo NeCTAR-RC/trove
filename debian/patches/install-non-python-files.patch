@@ -3,5 +3,6 @@ new file mode 100644
 index 0000000..d9f9c86
 --- /dev/null
 +++ b/MANIFEST.in
-@@ -0,0 +1 @@
-+recursive-include trove/templates *
+@@ -0,0 +2 @@
++recursive-include trove *
++include etc/trove/*.*
