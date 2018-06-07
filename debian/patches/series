@@ -9,3 +9,4 @@ make-trove-taskmanager.conf-parseable.patch
 use-realpath-function-to-find-my.cnf-in-debian.patch
 #py3-fix.patch
 #py3-fix-map-object-returns-iterator-not-list.patch
+install-non-python-files.patch
