@@ -1,0 +1,11 @@
+--- a/etc/trove/trove-logging-guestagent.conf
++++ b/etc/trove/trove-logging-guestagent.conf
+@@ -23,7 +23,7 @@ handlers=file
+ class=logging.handlers.RotatingFileHandler
+ level=WARNING
+ formatter=normal
+-args=('/var/log/trove-guestagent.log', 'a', 100 * 1024 * 1024) # log file limit is 100MB
++args=('/var/log/trove/trove-guestagent.log', 'a', 100 * 1024 * 1024) # log file limit is 100MB
+ 
+ ##################
+ # Log Formatters #

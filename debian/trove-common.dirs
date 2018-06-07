@@ -1,0 +1,6 @@
+etc/trove
+etc/trove/cloudinit
+etc/trove/conf.d
+var/cache/trove
+var/lib/trove
+var/log/trove

@@ -1,0 +1,25 @@
+#!/usr/bin/make -f
+
+PYTHONS:=$(shell pyversions -vr)
+
+include /usr/share/openstack-pkg-tools/pkgos.make
+
+%:
+	dh $@ --with python2,systemd
+
+override_dh_install:
+	dh_install --fail-missing
+
+get-orig-source:
+	uscan --verbose --force-download --rename --destdir=../build-area
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -f debian/*.init debian/*.service debian/*.upstart
+	rm -rf .eggs
+	rm -rf .testrepository
+
+override_dh_auto_test:
+ifeq (,$(findstring nocheck, $(DEB_BUILD_OPTIONS)))
+	ostestr --serial
+endif

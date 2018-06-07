@@ -1,0 +1,4 @@
+#!/usr/bin/dh-exec
+etc/trove/trove-guestagent.conf.sample => etc/trove/trove-guestagent.conf
+etc/trove/trove-logging-guestagent.conf
+usr/bin/trove-guestagent
