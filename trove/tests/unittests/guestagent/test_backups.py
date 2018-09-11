@@ -14,7 +14,7 @@
 
 import mock
 import os
-from mock import ANY, DEFAULT, Mock, patch, PropertyMock
+from mock import ANY, DEFAULT, Mock, patch, PropertyMock, call
 from testtools.testcase import ExpectedException
 from trove.common import exception
 from trove.common import utils
@@ -358,7 +358,9 @@ class GuestAgentBackupTest(trove_testtools.TestCase):
 
             # Make sure the temporary error log got deleted as root
             # (see bug/1423759).
-            remove.assert_called_once_with(ANY, force=True, as_root=True)
+            remove_calls = [call(ANY, force=True, as_root=True),
+                            call(ANY, force=True, as_root=True)]
+            remove.assert_has_calls(remove_calls)
 
     @mock.patch.object(ImportOverrideStrategy, '_initialize_import_directory')
     def test_backup_encrypted_mongodump_command(self, _):
