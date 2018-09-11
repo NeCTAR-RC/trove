@@ -358,7 +358,8 @@ class GuestAgentBackupTest(trove_testtools.TestCase):
 
             # Make sure the temporary error log got deleted as root
             # (see bug/1423759).
-            remove.assert_called_once_with(ANY, force=True, as_root=True)
+            remove.assert_called_with(ANY, force=True, as_root=True)
+            self.assertEqual(2, remove.call_count)
 
     @mock.patch.object(ImportOverrideStrategy, '_initialize_import_directory')
     def test_backup_encrypted_mongodump_command(self, _):
