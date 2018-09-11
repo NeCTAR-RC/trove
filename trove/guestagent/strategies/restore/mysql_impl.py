@@ -83,8 +83,8 @@ class MySQLRestoreMixin(object):
         if not os.path.exists(run_dir):
             utils.execute("mkdir", run_dir,
                           run_as_root=True, root_helper="sudo")
-        utils.execute("chown", "mysql:mysql", run_dir, err_log_file.name,
-                      init_file.name, run_as_root=True, root_helper="sudo")
+            utils.execute("chown", "mysql:mysql", run_dir, err_log_file.name,
+                          init_file.name, run_as_root=True, root_helper="sudo")
 
         child = pexpect.spawn(
             "sudo mysqld_safe --init-file=%s --log-error=%s" %
@@ -137,9 +137,10 @@ class MySQLRestoreMixin(object):
         """
 
         try:
-            # Do not attempt to delete these files as the 'trove' user.
+            # Do not attempt to delete the file as the 'trove' user.
             # The process writing into it may have assumed its ownership.
-            # Only owners can delete temporary files (restricted deletion).
+            # Only owners can delete temporary
+            # files (restricted deletion).
             init_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
             operating_system.write_file(init_file.name,
                                         self.RESET_ROOT_MYSQL_COMMANDS)
