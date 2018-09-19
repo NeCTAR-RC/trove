@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "512fcd19_6e134306",
+        "filename": "trove/tests/unittests/guestagent/test_backups.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 362,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-09-19T23:22:07Z",
+      "side": 1,
+      "message": "this could be changed to do:\n\nremove_calls \u003d [call(init_file.name, force\u003dTrue, as_root\u003dTrue),\ncall(err_log_file.name, force\u003dTrue, as_root\u003dTrue)\n]\nremove.assert_has_calls(remove_calls)",
+      "range": {
+        "startLine": 361,
+        "startChar": 0,
+        "endLine": 362,
+        "endChar": 50
+      },
+      "revId": "21ac8ed22e32501f66f47ed4e156c205e6076e6d",
+      "serverId": "f182a8af-62ca-4ceb-ab81-14f8fec9c6c5",
+      "unresolved": false
+    }
+  ]
+}
