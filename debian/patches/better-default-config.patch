@@ -1,0 +1,63 @@
+Description: Better default config
+ These were the recommendations of upstream. So why not just setting them up
+ this way directly?
+Author: Thomas Goirand <zigo@debian.org>
+Forwarded: no
+Last-Update: 2016-04-01
+
+--- a/etc/trove/trove-taskmanager.conf.sample
++++ b/etc/trove/trove-taskmanager.conf.sample
+@@ -27,11 +27,11 @@
+ db_api_implementation = trove.db.sqlalchemy.api
+ 
+ # Configuration options for talking to nova via the novaclient.
+-trove_auth_url = http://0.0.0.0:5000/v2.0
+-#nova_compute_url = http://localhost:8774/v2
+-#cinder_url = http://localhost:8776/v1
+-#swift_url = http://localhost:8080/v1/AUTH_
+-#neutron_url = http://localhost:9696/
++trove_auth_url = http://localhost:5000/v2.0
++nova_compute_url = http://localhost:8774/v2
++cinder_url = http://localhost:8776/v1
++swift_url = http://localhost:8080/v1/AUTH_
++neutron_url = http://localhost:9696/
+ 
+ # nova_compute_url, cinder_url, swift_url, and heat_url can all be fetched
+ # from Keystone. To fetch from Keystone, comment out nova_compute_url,
+@@ -220,7 +220,7 @@
+ icmp = True
+ # Format (single port or port range): A, B-C
+ # where C greater than B
+-tcp_ports = 3306
++tcp_ports = 3306,22
+ volume_support = True
+ device_path = /dev/vdb
+ 
+--- a/etc/trove/trove.conf.sample
++++ b/etc/trove/trove.conf.sample
+@@ -37,11 +37,11 @@
+ db_api_implementation = "trove.db.sqlalchemy.api"
+ 
+ # Configuration options for talking to nova via the novaclient.
+-trove_auth_url = http://0.0.0.0:5000/v2.0
+-#nova_compute_url = http://localhost:8774/v2
+-#cinder_url = http://localhost:8776/v1
+-#swift_url = http://localhost:8080/v1/AUTH_
+-#neutron_url = http://localhost:9696/
++trove_auth_url = http://localhost:5000/v2.0
++nova_compute_url = http://localhost:8774/v2
++cinder_url = http://localhost:8776/v1
++swift_url = http://localhost:8080/v1/AUTH_
++neutron_url = http://localhost:9696/
+ 
+ # nova_compute_url, cinder_url, swift_url, and heat_url can all be fetched
+ # from Keystone. To fetch from Keystone, comment out nova_compute_url,
+@@ -212,7 +212,7 @@
+ root_on_create = False
+ # Format (single port or port range): A, B-C
+ # where C greater than B
+-tcp_ports = 3306
++tcp_ports = 3306,22
+ volume_support = True
+ device_path = /dev/vdb
+ 

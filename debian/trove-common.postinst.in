@@ -1,0 +1,45 @@
+#!/bin/sh
+
+set -e
+
+#PKGOS-INCLUDE#
+
+if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ] ; then
+	. /usr/share/debconf/confmodule
+	. /usr/share/dbconfig-common/dpkg/postinst
+	pkgos_var_user_group trove
+
+	mkdir -p /var/cache/trove
+	chown trove:trove /var/cache/trove
+
+	pkgos_write_new_conf trove trove.conf
+	pkgos_write_new_conf trove trove-conductor.conf
+	pkgos_write_new_conf trove trove-guestagent.conf
+	pkgos_write_new_conf trove trove-taskmanager.conf
+	pkgos_write_new_conf trove api-paste.ini
+	mkdir -p /etc/trove/conf.d
+	chown trove:trove /etc/trove/conf.d
+	touch /etc/trove/conf.d/guest_info.conf
+	chown trove:trove /etc/trove/conf.d/guest_info.conf
+
+	db_get trove/configure_db
+	if [ "$RET" = "true" ]; then
+		pkgos_dbc_postinst /etc/trove/trove.conf database connection trove $@
+		pkgos_inifile get /etc/trove/trove.conf database connection
+		pkgos_inifile set /etc/trove/trove-conductor.conf database connection ${RET}
+		pkgos_inifile set /etc/trove/trove-taskmanager.conf database connection ${RET}
+		trove-manage db_sync
+	fi
+	pkgos_write_admin_creds /etc/trove/trove.conf keystone_authtoken trove
+
+	pkgos_rabbit_write_conf /etc/trove/trove.conf oslo_messaging_rabbit trove
+	#pkgos_rabbit_write_conf /etc/trove/trove-conductor.conf oslo_messaging_rabbit trove
+	#pkgos_rabbit_write_conf /etc/trove/trove-taskmanager.conf oslo_messaging_rabbit trove
+	#pkgos_rabbit_write_conf /etc/trove/trove-guestagent.conf oslo_messaging_rabbit trove
+
+	db_stop
+fi
+
+#DEBHELPER#
+
+exit 0

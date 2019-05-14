@@ -1,0 +1,11 @@
+Tests: trove-daemons, trove-shebangs-py3
+Depends: python3-trove, trove-common, trove-api,
+ trove-guestagent, trove-taskmanager, trove-conductor,
+ mysql-server, crudini
+Restrictions: needs-root
+
+Tests: trove-daemons, trove-shebangs-py2
+Depends: trove-common, trove-api, trove-guestagent,
+ trove-taskmanager, trove-conductor, mysql-server,
+ crudini
+Restrictions: needs-root

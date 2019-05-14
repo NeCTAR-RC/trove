@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -e
+
+if [ "$1" = "configure" ] ; then
+	update-alternatives --install /usr/bin/trove-api trove-api /usr/bin/python3-trove-api 200
+	update-alternatives --install /usr/bin/trove-conductor trove-conductor /usr/bin/python3-trove-conductor 200
+	update-alternatives --install /usr/bin/trove-fake-mode trove-fake-mode /usr/bin/python3-trove-fake-mode 200
+	update-alternatives --install /usr/bin/trove-guestagent trove-guestagent /usr/bin/python3-trove-guestagent 200
+	update-alternatives --install /usr/bin/trove-manage trove-manage /usr/bin/python3-trove-manage 200
+	update-alternatives --install /usr/bin/trove-mgmt-taskmanager trove-mgmt-taskmanager /usr/bin/python3-trove-mgmt-taskmanager 200
+	update-alternatives --install /usr/bin/trove-taskmanager trove-taskmanager /usr/bin/python3-trove-taskmanager 200
+fi
+
+#DEBHELPER#
+
+exit 0

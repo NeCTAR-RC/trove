@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -e
+
+if [ "$1" = "remove" ] || [ "$1" = "disappear" ] ; then
+	update-alternatives --remove trove-api /usr/bin/python2-trove-api
+	update-alternatives --remove trove-conductor /usr/bin/python2-trove-conductor
+	update-alternatives --remove trove-fake-mode /usr/bin/python2-trove-fake-mode
+	update-alternatives --remove trove-guestagent /usr/bin/python2-trove-guestagent
+	update-alternatives --remove trove-manage /usr/bin/python2-trove-manage
+	update-alternatives --remove trove-mgmt-taskmanager /usr/bin/python2-trove-mgmt-taskmanager
+	update-alternatives --remove trove-taskmanager /usr/bin/python2-trove-taskmanager
+fi
+
+#DEBHELPER#
+
+exit 0

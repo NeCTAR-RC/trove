@@ -1,0 +1,18 @@
+#!/bin/bash
+#---------------------
+# Testing /usr/bin/trove-* shebangs
+#---------------------
+set -e
+
+BINARIES=('trove-api' 'trove-conductor' 'trove-fake-mode' 'trove-guestagent' \
+          'trove-manage' 'trove-mgmt-taskmanager' 'trove-taskmanager')
+
+ret=0
+
+for binary in "${BINARIES[@]}"; do
+    if ! `dirname $0`/test-shebang.py $binary python2.7; then
+        ret=1
+    fi
+done
+
+exit $ret

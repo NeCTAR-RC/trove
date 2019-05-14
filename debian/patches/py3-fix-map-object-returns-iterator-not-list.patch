@@ -1,0 +1,18 @@
+Description: Map object returns iterator not list
+ In Python 3 a map object returns an iterator, not a list, and therefore,
+ it shall be converted.
+Author: Thomas Goirand <zigo@debian.org>
+Forwarded: no
+Last-Update: 2018-02-19
+
+--- openstack-trove-9.0.0~rc1.orig/trove/common/utils.py
++++ openstack-trove-9.0.0~rc1/trove/common/utils.py
+@@ -313,7 +313,7 @@ def unpack_singleton(container):
+     and unpack it if that is the case.
+     Return the original collection otherwise.
+     """
+-    if is_collection(container) and len(container) == 1:
++    if is_collection(container) and len(list(container)) == 1:
+         return unpack_singleton(container[0])
+ 
+     return container
