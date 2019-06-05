@@ -893,7 +893,8 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
                        scheduler_hints=None):
         userdata = self._prepare_userdata(datastore_manager)
         metadata = {'project_id': self.tenant_id,
-                    'user_id': self.context.user}
+                    'user_id': self.context.user,
+                    'trove_id': self.id}
         name = self.hostname or self.name
         bdmap_v2 = block_device_mapping_v2
         config_drive = CONF.use_nova_server_config_drive

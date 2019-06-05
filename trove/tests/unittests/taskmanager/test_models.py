@@ -306,7 +306,8 @@ class FreshInstanceTasksTest(BaseFreshInstanceTasksTest):
                                                None, 'mysql', None, None,
                                                None)
         meta = {'project_id': self.freshinstancetasks.tenant_id,
-                'user_id': 'test_user'}
+                'user_id': 'test_user',
+                'trove_id': self.freshinstancetasks.id}
         mock_servers_create.assert_called_with('fake-hostname', 'fake-image',
                                                'fake-flavor', files={},
                                                userdata=None,
