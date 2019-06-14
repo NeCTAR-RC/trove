@@ -412,8 +412,8 @@ class PgSqlApp(object):
         admin._create_admin_user(context, os_admin,
                                  encrypt_password=True)
 
-        PgSqlAdmin(os_admin).alter_user(context, postgres, None,
-                                        'NOSUPERUSER', 'NOLOGIN')
+        # PgSqlAdmin(os_admin).alter_user(context, postgres, None,
+        #                                 'NOSUPERUSER', 'NOLOGIN')
 
         self.set_current_admin_user(os_admin)
 
