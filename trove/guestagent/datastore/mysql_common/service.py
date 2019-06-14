@@ -308,17 +308,16 @@ class BaseMySqlAdmin(object):
             for item in users:
                 user = models.MySQLUser.deserialize(item)
                 user.check_create()
-                # TODO(cp16net):Should users be allowed to create users
-                # 'os_admin' or 'debian-sys-maint'
-                g = sql_query.Grant(user=user.name, host=user.host,
-                                    clear=user.password)
-                t = text(str(g))
-                client.execute(t)
+
+                cu = sql_query.CreateUser(user.name, host=user.host,
+                                          clear=user.password)
+                t = text(str(cu))
+                client.execute(t, **cu.keyArgs)
+
                 for database in user.databases:
                     mydb = models.MySQLSchema.deserialize(database)
                     g = sql_query.Grant(permissions='ALL', database=mydb.name,
-                                        user=user.name, host=user.host,
-                                        clear=user.password)
+                                        user=user.name, host=user.host)
                     t = text(str(g))
                     client.execute(t)
 
@@ -658,8 +657,12 @@ class BaseMySqlApp(object):
         """
         LOG.debug("Creating Trove admin user '%s'.", ADMIN_USER_NAME)
         host = "127.0.0.1"
+        cu = sql_query.CreateUser(user.name, host=user.host, clear=password)
+        t = text(str(cu))
+        client.execute(t, **cu.keyArgs)
+
         g = sql_query.Grant(permissions='ALL', user=ADMIN_USER_NAME,
-                            host=host, grant_option=True, clear=password)
+                            host=host, grant_option=True)
         t = text(str(g))
         client.execute(t)
         LOG.debug("Trove admin user '%s' created.", ADMIN_USER_NAME)
