@@ -113,7 +113,7 @@ class PgBaseBackup(base.BackupRunner, PgBaseBackupUtil):
     @property
     def cmd(self):
         cmd = ("pg_basebackup -h %s -U %s --pgdata=-"
-               " --label=%s --format=tar --xlog " %
+               " --label=%s --format=tar " %
                (self.app.pgsql_run_dir, self.app.ADMIN_USER,
                 self.base_filename))
 
