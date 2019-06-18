@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "90b67f18_92c83c8d",
+        "filename": "trove/templates/postgresql/config.template",
+        "patchSetId": 1
+      },
+      "lineNbr": 196,
+      "author": {
+        "id": 1000077
+      },
+      "writtenOn": "2019-06-18T03:21:03Z",
+      "side": 1,
+      "message": "should this be updated too? is this file a thing that is shipped as the default config?",
+      "range": {
+        "startLine": 196,
+        "startChar": 22,
+        "endLine": 196,
+        "endChar": 65
+      },
+      "revId": "a92ff81c128400b9a3304fb9fc3c5441a6bda9c6",
+      "serverId": "f182a8af-62ca-4ceb-ab81-14f8fec9c6c5",
+      "unresolved": true
+    }
+  ]
+}
