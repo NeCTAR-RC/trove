@@ -85,11 +85,6 @@ class PgSqlApp(object):
         return '/var/lib/postgresql/'
 
     @property
-    def pgsql_pid_file(self):
-        return guestagent_utils.build_file_path(self.pgsql_run_dir,
-                                                'postgresql.pid')
-
-    @property
     def pgsql_run_dir(self):
         return '/var/run/postgresql/'
 
@@ -197,7 +192,6 @@ class PgSqlApp(object):
             'data_directory': self._quote(self.pgsql_data_dir),
             'hba_file': self._quote(self.pgsql_hba_config),
             'ident_file': self._quote(self.pgsql_ident_config),
-            'external_pid_file': self._quote(self.pgsql_pid_file),
             'unix_socket_directories': self._quote(self.pgsql_run_dir),
             'listen_addresses': self._quote(','.join(self.LISTEN_ADDRESSES)),
             'port': cfg.get_configuration_property('postgresql_port')}
