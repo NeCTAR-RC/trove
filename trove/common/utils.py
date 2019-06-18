@@ -101,7 +101,9 @@ def raise_if_process_errored(process, exception):
     try:
         err = process.stderr.read()
         if err:
-            raise exception(err)
+            LOG.warning(err)
+    except processutils.ProcessExecutionError as e:
+        raise exception(e)
     except OSError:
         pass
 
