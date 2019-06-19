@@ -51,33 +51,33 @@ class InnoBackupEx(base.BackupRunner):
 
     @property
     def user_and_pass(self):
-        return (' --user=%(user)s --password=%(password)s ' %
+        return (' --user=%(user)s --password=%(password)s --host=127.0.0.1' %
                 {'user': ADMIN_USER_NAME,
                  'password': MySqlApp.get_auth_password()})
 
     @property
     def cmd(self):
-        cmd = ('sudo innobackupex'
+        cmd = ('sudo xtrabackup'
                ' --stream=xbstream'
+               ' --backup'
                ' %(extra_opts)s ' +
                self.user_and_pass +
-               MySqlApp.get_data_dir() +
                ' 2>/tmp/innobackupex.log'
                )
         return cmd + self.zip_cmd + self.encrypt_cmd
 
     def check_process(self):
         """Check the output from innobackupex for 'completed OK!'."""
-        LOG.debug('Checking innobackupex process output.')
+        LOG.debug('Checking xtrabackup process output.')
         with open('/tmp/innobackupex.log', 'r') as backup_log:
             output = backup_log.read()
             LOG.info(output)
             if not output:
-                LOG.error("Innobackupex log file empty.")
+                LOG.error("Xtrabackp log file empty.")
                 return False
             last_line = output.splitlines()[-1].strip()
             if not re.search('completed OK!', last_line):
-                LOG.error("Innobackupex did not complete successfully.")
+                LOG.error("Xtrabackup did not complete successfully.")
                 return False
 
         return True
@@ -112,13 +112,12 @@ class InnoBackupExIncremental(InnoBackupEx):
 
     @property
     def cmd(self):
-        cmd = ('sudo innobackupex'
+        cmd = ('sudo xtrabackup'
                ' --stream=xbstream'
-               ' --incremental'
+               ' --backup'
                ' --incremental-lsn=%(lsn)s'
                ' %(extra_opts)s ' +
                self.user_and_pass +
-               MySqlApp.get_data_dir() +
                ' 2>/tmp/innobackupex.log')
         return cmd + self.zip_cmd + self.encrypt_cmd
 
