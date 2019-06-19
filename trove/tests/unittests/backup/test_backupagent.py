@@ -229,11 +229,13 @@ class BackupAgentTest(trove_testtools.TestCase):
         """
         inno_backup_ex = mysql_impl.InnoBackupEx('innobackupex', extra_opts='')
         self.assertIsNotNone(inno_backup_ex.cmd)
-        str_innobackup_cmd = ('sudo innobackupex'
+        str_innobackup_cmd = ('sudo xtrabackup'
                               ' --stream=xbstream'
+                              ' --backup'
                               ' %(extra_opts)s '
                               ' --user=os_admin --password=123'
-                              ' /var/lib/mysql/data 2>/tmp/innobackupex.log'
+                              ' --host=127.0.0.1'
+                              ' 2>/tmp/innobackupex.log'
                               ' | gzip |'
                               ' openssl enc -aes-256-cbc -salt '
                               '-pass pass:default_aes_cbc_key')
