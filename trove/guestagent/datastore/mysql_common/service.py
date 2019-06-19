@@ -714,14 +714,6 @@ class BaseMySqlApp(object):
         with self.local_sql_client(engine, use_flush=False) as client:
             self._create_admin_user(client, admin_password)
 
-        LOG.debug("Switching to the '%s' user now.", ADMIN_USER_NAME)
-        engine = sqlalchemy.create_engine(
-            CONNECTION_STR_FORMAT % (ADMIN_USER_NAME,
-                                     urllib.parse.quote(admin_password)),
-            echo=True)
-        with self.local_sql_client(engine) as client:
-            self._remove_anonymous_user(client)
-
         self.stop_db()
         self._reset_configuration(config_contents, admin_password)
         self.start_mysql()
@@ -804,12 +796,6 @@ class BaseMySqlApp(object):
             LOG.error("Could not stop MySQL.")
             self.status.end_restart()
             raise RuntimeError(_("Could not stop MySQL!"))
-
-    def _remove_anonymous_user(self, client):
-        LOG.debug("Removing anonymous user.")
-        t = text(sql_query.REMOVE_ANON)
-        client.execute(t)
-        LOG.debug("Anonymous user removed.")
 
     def _remove_remote_root_access(self, client):
         LOG.debug("Removing root access.")

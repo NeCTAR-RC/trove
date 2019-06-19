@@ -424,6 +424,5 @@ class SetServerVariable(object):
 FLUSH = "FLUSH PRIVILEGES;"
 ROOT_ENABLED = ("SELECT User FROM mysql.user "
                 "WHERE User = 'root' AND Host != 'localhost';")
-REMOVE_ANON = "DELETE FROM mysql.user WHERE User = '';"
 REMOVE_ROOT = ("DELETE FROM mysql.user "
                "WHERE User = 'root' AND Host != 'localhost';")
