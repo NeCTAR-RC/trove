@@ -657,9 +657,18 @@ class BaseMySqlApp(object):
         """
         LOG.debug("Creating Trove admin user '%s'.", ADMIN_USER_NAME)
         host = "127.0.0.1"
-        cu = sql_query.CreateUser(ADMIN_USER_NAME, host=host, clear=password)
-        t = text(str(cu))
-        client.execute(t, **cu.keyArgs)
+        try:
+            cu = sql_query.CreateUser(ADMIN_USER_NAME, host=host,
+                                      clear=password)
+            t = text(str(cu))
+            client.execute(t, **cu.keyArgs)
+        except (exc.OperationalError, exc.InternalError) as err:
+            # Ignore, user is already created, just reset the password
+            LOG.debug(err)
+            uu = sql_query.SetPassword(ADMIN_USER_NAME, host=host,
+                                       new_password=password)
+            t = text(str(uu))
+            client.execute(t)
 
         g = sql_query.Grant(permissions='ALL', user=ADMIN_USER_NAME,
                             host=host, grant_option=True)
