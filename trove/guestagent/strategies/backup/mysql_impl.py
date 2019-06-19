@@ -75,28 +75,28 @@ class InnoBackupEx(base.BackupRunner):
 
     @property
     def cmd(self):
-        cmd = ('sudo innobackupex'
+        cmd = ('sudo xtrabackup'
                ' --stream=xbstream'
+               ' --backup'
                ' %(extra_opts)s ' +
-               self.user_and_pass + ' ' +
-               MySqlApp.get_data_dir() +
+               self.user_and_pass +
                ' 2>/tmp/innobackupex.log'
                )
         return cmd + self.zip_cmd + self.encrypt_cmd
 
     def check_process(self):
         """Check the output from innobackupex for 'completed OK!'."""
-        LOG.debug('Checking innobackupex process output.')
+        LOG.debug('Checking xtrabackup process output.')
         with open('/tmp/innobackupex.log', 'r') as backup_log:
             output = backup_log.read()
             if not output:
-                LOG.error("Innobackupex log file empty.")
+                LOG.error("Xtrabackp log file empty.")
                 return False
 
             LOG.debug(output)
             last_line = output.splitlines()[-1].strip()
             if not re.search('completed OK!', last_line):
-                LOG.error("Innobackupex did not complete successfully.")
+                LOG.error("Xtrabackup did not complete successfully.")
                 return False
 
         return True
@@ -131,13 +131,12 @@ class InnoBackupExIncremental(InnoBackupEx):
 
     @property
     def cmd(self):
-        cmd = ('sudo innobackupex'
+        cmd = ('sudo xtrabackup'
                ' --stream=xbstream'
-               ' --incremental'
+               ' --backup'
                ' --incremental-lsn=%(lsn)s'
                ' %(extra_opts)s ' +
-               self.user_and_pass + ' ' +
-               MySqlApp.get_data_dir() +
+               self.user_and_pass +
                ' 2>/tmp/innobackupex.log')
         return cmd + self.zip_cmd + self.encrypt_cmd
 
