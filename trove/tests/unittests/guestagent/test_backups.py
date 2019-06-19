@@ -78,18 +78,17 @@ ZIP = "gzip"
 UNZIP = "gzip -d -c"
 ENCRYPT = "openssl enc -aes-256-cbc -salt -pass pass:default_aes_cbc_key"
 DECRYPT = "openssl enc -d -aes-256-cbc -salt -pass pass:default_aes_cbc_key"
-XTRA_BACKUP_RAW = ("sudo innobackupex --stream=xbstream %(extra_opts)s"
+XTRA_BACKUP_RAW = ("sudo xtrabackup --stream=xbstream --backup %(extra_opts)s "
                    " --user=os_admin --password=password --host=localhost"
                    " --socket=/var/run/mysqld/mysqld.sock"
-                   " /var/lib/mysql/data 2>/tmp/innobackupex.log")
+                   " 2>/tmp/innobackupex.log")
 XTRA_BACKUP = XTRA_BACKUP_RAW % {'extra_opts': ''}
 XTRA_BACKUP_EXTRA_OPTS = XTRA_BACKUP_RAW % {'extra_opts': '--no-lock'}
-XTRA_BACKUP_INCR = ('sudo innobackupex --stream=xbstream'
-                    ' --incremental --incremental-lsn=%(lsn)s'
-                    ' %(extra_opts)s'
+XTRA_BACKUP_INCR = ('sudo xtrabackup --stream=xbstream'
+                    ' --backup --incremental-lsn=%(lsn)s'
+                    ' %(extra_opts)s '
                     ' --user=os_admin --password=password --host=localhost'
                     ' --socket=/var/run/mysqld/mysqld.sock'
-                    ' /var/lib/mysql/data'
                     ' 2>/tmp/innobackupex.log')
 SQLDUMP_BACKUP_RAW = ("mysqldump --all-databases %(extra_opts)s "
                       "--opt --password=password -u os_admin"
@@ -100,20 +99,18 @@ SQLDUMP_BACKUP_EXTRA_OPTS = (SQLDUMP_BACKUP_RAW %
 XTRA_RESTORE_RAW = ("sudo xbstream -x -C %(restore_location)s"
                     " 2>/tmp/xbstream_extract.log")
 XTRA_RESTORE = XTRA_RESTORE_RAW % {'restore_location': '/var/lib/mysql/data'}
-XTRA_INCR_PREPARE = ("sudo innobackupex"
+XTRA_INCR_PREPARE = ("sudo xtrabackup"
                      " --defaults-file=/var/lib/mysql/data/backup-my.cnf"
-                     " --ibbackup=xtrabackup"
-                     " --apply-log"
-                     " --redo-only"
-                     " /var/lib/mysql/data"
+                     " --prepare"
+                     " --apply-log-only"
+                     " --target-dir=/var/lib/mysql/data"
                      " %(incr)s"
                      " 2>/tmp/innoprepare.log")
 SQLDUMP_RESTORE = "sudo mysql"
-PREPARE = ("sudo innobackupex"
+PREPARE = ("sudo xtrabackup"
            " --defaults-file=/var/lib/mysql/data/backup-my.cnf"
-           " --ibbackup=xtrabackup"
-           " --apply-log"
-           " /var/lib/mysql/data"
+           " --prepare"
+           " --target-dir=/var/lib/mysql/data"
            " 2>/tmp/innoprepare.log")
 CRYPTO_KEY = "default_aes_cbc_key"
 

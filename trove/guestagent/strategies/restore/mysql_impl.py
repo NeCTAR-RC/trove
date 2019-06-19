@@ -187,11 +187,10 @@ class InnoBackupEx(base.RestoreRunner, MySQLRestoreMixin):
     __strategy_name__ = 'innobackupex'
     base_restore_cmd = ('sudo xbstream -x -C %(restore_location)s'
                         ' 2>/tmp/xbstream_extract.log')
-    base_prepare_cmd = ('sudo innobackupex'
+    base_prepare_cmd = ('sudo xtrabackup'
                         ' --defaults-file=%(restore_location)s/backup-my.cnf'
-                        ' --ibbackup=xtrabackup'
-                        ' --apply-log'
-                        ' %(restore_location)s'
+                        ' --prepare'
+                        ' --target-dir=%(restore_location)s'
                         ' 2>/tmp/innoprepare.log')
 
     def __init__(self, *args, **kwargs):
@@ -217,9 +216,9 @@ class InnoBackupEx(base.RestoreRunner, MySQLRestoreMixin):
         utils.clean_out(self.restore_location)
 
     def _run_prepare(self):
-        LOG.info("Running innobackupex prepare: %s.", self.prepare_cmd)
+        LOG.info("Running xtrabackup prepare: %s.", self.prepare_cmd)
         self.prep_retcode = utils.execute(self.prepare_cmd, shell=True)
-        LOG.info("Innobackupex prepare finished successfully.")
+        LOG.info("Xtrabackup prepare finished successfully.")
 
     def post_restore(self):
         self._run_prepare()
@@ -275,12 +274,11 @@ class InnoBackupEx(base.RestoreRunner, MySQLRestoreMixin):
 
 class InnoBackupExIncremental(InnoBackupEx):
     __strategy_name__ = 'innobackupexincremental'
-    incremental_prep = ('sudo innobackupex'
+    incremental_prep = ('sudo xtrabackup'
                         ' --defaults-file=%(restore_location)s/backup-my.cnf'
-                        ' --ibbackup=xtrabackup'
-                        ' --apply-log'
-                        ' --redo-only'
-                        ' %(restore_location)s'
+                        ' --prepare'
+                        ' --apply-log-only'
+                        ' --target-dir=%(restore_location)s'
                         ' %(incremental_args)s'
                         ' 2>/tmp/innoprepare.log')
 
@@ -311,9 +309,9 @@ class InnoBackupExIncremental(InnoBackupEx):
 
     def _incremental_prepare(self, incremental_dir):
         prepare_cmd = self._incremental_prepare_cmd(incremental_dir)
-        LOG.debug("Running innobackupex prepare: %s.", prepare_cmd)
+        LOG.debug("Running xtrabackup prepare: %s.", prepare_cmd)
         utils.execute(prepare_cmd, shell=True)
-        LOG.debug("Innobackupex prepare finished successfully.")
+        LOG.info("xtrabackup prepare finished successfully.")
 
     def _incremental_restore(self, location, checksum):
         """Recursively apply backups from all parents.
