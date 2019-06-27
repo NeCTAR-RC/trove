@@ -117,7 +117,8 @@ volume = {
                 {"type": "null"}
             ]
 
-        }
+        },
+        "availability_zone": non_empty_string
     }
 }
 
