@@ -465,6 +465,9 @@ common_opts = [
                help='Key (OpenSSL aes_cbc) to encrypt instance keys in DB.'),
     cfg.StrOpt('instance_rpc_encr_key',
                help='Key (OpenSSL aes_cbc) for instance RPC encryption.'),
+    cfg.BoolOpt('ensure_az', default=False,
+                help='Ensure availability_zone attribute is used when '
+                'creating instances.'),
 ]
 
 

@@ -1023,6 +1023,11 @@ class Instance(BuiltInstance):
                locality=None, region_name=None, access=None):
 
         region_name = region_name or CONF.service_credentials.region_name
+        if CONF.ensure_az:
+            if not availability_zone:
+                raise exception.TroveError(
+                    "availability_zone must be provided when creating "
+                    "an instance")
 
         call_args = {
             'name': name,
