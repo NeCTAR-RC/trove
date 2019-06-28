@@ -1460,6 +1460,10 @@ class Instance(BuiltInstance):
         return dict(config.render_dict())
 
     def upgrade(self, datastore_version):
+        if (self.datastore_version.name.startswith('9.6')
+            and datastore_version.name.startswith('11')):
+            raise exception.TroveError("Unable to upgrade, Incompatible versions")
+
         self.update_db(datastore_version_id=datastore_version.id,
                        task_status=InstanceTasks.UPGRADING)
         task_api.API(self.context).upgrade(self.id,
