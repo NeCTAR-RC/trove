@@ -1470,8 +1470,8 @@ class Instance(BuiltInstance):
 
     def upgrade(self, datastore_version):
         if self.datastore_version.db_info.manager == 'postgresql':
-            old_version = self.datastore_version.name.split(',')[0]
-            new_version = datastore_version.name.split(',')[0]
+            old_version = self.datastore_version.name.split('.')[0]
+            new_version = datastore_version.name.split('.')[0]
             if old_version != new_version:
                 raise exception.TroveError(
                     "Unable to upgrade PostgreSQL between major "
