@@ -868,6 +868,12 @@ class Instance(BuiltInstance):
                     "availability_zone must be provided when creating "
                     "an instance")
 
+        if (availability_zone == 'cn' and
+                'Auckland-Access' not in context.roles):
+            raise exception.TroveError(
+                "Not authorized for access to availablity zone '%s'"
+                % availability_zone)
+
         call_args = {
             'name': name,
             'flavor_id': flavor_id,
