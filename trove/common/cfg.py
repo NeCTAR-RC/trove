@@ -468,6 +468,8 @@ common_opts = [
     cfg.BoolOpt('ensure_az', default=False,
                 help='Ensure availability_zone attribute is used when '
                 'creating instances.'),
+    cfg.DictOpt('az_role_mapping', default={},
+                help="Mapping between availability zone and role"),
 ]
 
 
