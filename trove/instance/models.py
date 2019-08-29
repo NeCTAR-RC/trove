@@ -877,11 +877,13 @@ class Instance(BuiltInstance):
                     "availability_zone must be provided when creating "
                     "an instance")
 
-        if (availability_zone == 'auckland' and
-                'Auckland-Access' not in context.roles):
-            raise exception.TroveError(
-                "Not authorized for access to availablity zone '%s'"
-                % availability_zone)
+        # Check that if the user requests an AZ that we restrict by a mapping,
+        # return a fail if the project doesn't have the required role
+        if availability_zone in CONF.az_role_mapping.keys():
+            if CONF.az_role_mapping[availability_zone] not in context.roles:
+                raise exception.TroveError(
+                    "Not authorized for access to availablity zone '%s'"
+                    % availability_zone)
 
         call_args = {
             'name': name,

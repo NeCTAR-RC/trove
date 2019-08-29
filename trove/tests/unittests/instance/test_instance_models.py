@@ -155,7 +155,8 @@ class CreateInstanceTest(trove_testtools.TestCase):
     @patch.object(task_api.API, 'get_client', Mock(return_value=Mock()))
     def setUp(self):
         util.init_db()
-        self.context = trove_testtools.TroveTestContext(self, is_admin=True)
+        self.context = trove_testtools.TroveTestContext(self, is_admin=True,
+                                                        roles=['role'])
         self.name = "name"
         self.flavor_id = 5
         self.image_id = "UUID"
@@ -276,9 +277,34 @@ class CreateInstanceTest(trove_testtools.TestCase):
             self.image_id, self.databases, self.users,
             self.datastore, self.datastore_version,
             self.volume_size, self.backup_id,
+            self.az, self.nics, self.configuration)
+        self.assertIsNotNone(instance)
+
+    def test_restriction_on_az_role(self):
+        self.patch_conf_property(
+            'az_role_mapping', {self.az: 'role'})
+        instance = models.Instance.create(
+            self.context, self.name, self.flavor_id,
+            self.image_id, self.databases, self.users,
+            self.datastore, self.datastore_version,
+            self.volume_size, self.backup_id,
             self.az, self.nics, self.configuration,
             locality=self.locality)
         self.assertIsNotNone(instance)
+
+    def test_exception_on_az_role_failure(self):
+        self.patch_conf_property(
+            'az_role_mapping', {self.az: 'NonExistentRole'})
+        exc = self.assertRaises(
+            exception.TroveError, models.Instance.create,
+            self.context, self.name, self.flavor_id,
+            self.image_id, self.databases, self.users,
+            self.datastore, self.datastore_version,
+            self.volume_size, self.backup_id,
+            self.az, self.nics, self.configuration
+        )
+        self.assertIn("Not authorized for access to availablity zone '%s'"
+                      % self.az, str(exc))
 
 
 class TestInstanceUpgrade(trove_testtools.TestCase):
