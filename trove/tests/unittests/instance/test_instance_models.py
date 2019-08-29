@@ -256,6 +256,20 @@ class CreateInstanceTest(trove_testtools.TestCase):
             locality=self.locality)
         self.assertIsNotNone(instance)
 
+    def test_exception_on_az_role_failure(self):
+        self.patch_conf_property(
+            'az_role_mapping', {self.az: 'NonExistentRole'})
+        exc = self.assertRaises(
+            exception.TroveError, models.Instance.create,
+            self.context, self.name, self.flavor_id,
+            self.image_id, self.databases, self.users,
+            self.datastore, self.datastore_version,
+            self.volume_size, self.backup_id,
+            self.az, self.nics, self.configuration
+        )
+        self.assertIn("Not authorized for access to availablity zone '%s'"
+                      % self.az, str(exc))
+
 
 class TestInstanceUpgrade(trove_testtools.TestCase):
 
