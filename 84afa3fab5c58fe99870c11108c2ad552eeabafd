@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "73f7226b_47c11548",
+        "filename": "trove/instance/models.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 876,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2019-08-30T00:36:38Z",
+      "side": 1,
+      "message": "Could do this a different way and avoid iterating over all the items:\n\nif az in CONF.az_role_mapping.keys():\n   if CONF.az_role_mapping[az] not in context.roles:\n      raise .....",
+      "range": {
+        "startLine": 874,
+        "startChar": 12,
+        "endLine": 876,
+        "endChar": 49
+      },
+      "revId": "84afa3fab5c58fe99870c11108c2ad552eeabafd",
+      "serverId": "f182a8af-62ca-4ceb-ab81-14f8fec9c6c5",
+      "unresolved": true
+    }
+  ]
+}
