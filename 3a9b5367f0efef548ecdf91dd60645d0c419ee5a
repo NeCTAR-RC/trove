@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c906a5c1_70f5ef9d",
+        "filename": "trove/tests/unittests/instance/test_instance_models.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 222,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2019-09-03T00:10:33Z",
+      "side": 1,
+      "message": "separate commit that can go upstream?",
+      "range": {
+        "startLine": 221,
+        "startChar": 1,
+        "endLine": 222,
+        "endChar": 26
+      },
+      "revId": "3a9b5367f0efef548ecdf91dd60645d0c419ee5a",
+      "serverId": "f182a8af-62ca-4ceb-ab81-14f8fec9c6c5",
+      "unresolved": true
+    }
+  ]
+}
