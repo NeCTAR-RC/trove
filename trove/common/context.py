@@ -37,13 +37,14 @@ class TroveContext(context.RequestContext):
     """
     def __init__(self, limit=None, marker=None, service_catalog=None,
                  user_identity=None, instance_id=None, timeout=None,
-                 **kwargs):
+                 notification=None, **kwargs):
         self.limit = limit
         self.marker = marker
         self.service_catalog = service_catalog
         self.user_identity = user_identity
         self.instance_id = instance_id
         self.timeout = timeout
+        self.notification = notification
         super(TroveContext, self).__init__(**kwargs)
 
         if not hasattr(local.store, 'context'):
