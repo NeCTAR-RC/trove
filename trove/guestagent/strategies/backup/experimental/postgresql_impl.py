@@ -195,7 +195,7 @@ class PgBaseBackup(base.BackupRunner, PgBaseBackupUtil):
             return metadata['label'] == self.base_filename
 
         try:
-            utils.poll_until(_metadata_found, sleep_time=5, time_out=60)
+            utils.poll_until(_metadata_found, sleep_time=5, time_out=600)
         except exception.PollTimeOut:
             raise RuntimeError(_("Timeout waiting for backup metadata for"
                                  " backup %s") % self.base_filename)
