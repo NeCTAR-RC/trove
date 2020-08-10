@@ -1659,6 +1659,10 @@ class Instance(BuiltInstance):
         task_api.API(self.context).upgrade(self.id,
                                            datastore_version.id)
 
+    def update_access(self, access):
+        self.update_db(task_status=InstanceTasks.UPDATING)
+        task_api.API(self.context).update_access(self.id, access)
+
 
 def create_server_list_matcher(server_list):
     # Returns a method which finds a server from the given list.
