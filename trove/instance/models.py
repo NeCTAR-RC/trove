@@ -470,6 +470,13 @@ class SimpleInstance(object):
     def encrypted_rpc_messaging(self):
         return True if self.db_info.encrypted_key is not None else False
 
+    @property
+    def access(self):
+        if hasattr(self.db_info, 'access'):
+            return self.db_info.access
+        else:
+            return None
+
 
 class DetailInstance(SimpleInstance):
     """A detailed view of an Instance.
@@ -1228,12 +1235,11 @@ class Instance(BuiltInstance):
                     configuration_id=configuration_id,
                     slave_of_id=slave_of_id, cluster_id=cluster_id,
                     shard_id=shard_id, type=instance_type,
-                    region_id=region_name)
+                    region_id=region_name, access=access)
                 LOG.debug("Tenant %(tenant)s created new Trove instance "
                           "%(db)s in region %(region)s.",
                           {'tenant': context.project_id, 'db': db_info.id,
                            'region': region_name})
-
                 instance_id = db_info.id
                 cls.add_instance_modules(context, instance_id, modules)
                 instance_name = name
@@ -1786,7 +1792,7 @@ class DBInstance(dbmodels.DatabaseModelBase):
                     'volume_size', 'tenant_id', 'server_status',
                     'deleted', 'deleted_at', 'datastore_version_id',
                     'configuration_id', 'slave_of_id', 'cluster_id',
-                    'shard_id', 'type', 'region_id', 'encrypted_key']
+                    'shard_id', 'type', 'region_id', 'encrypted_key', 'access']
     _table_name = 'instances'
 
     def __init__(self, task_status, **kwargs):

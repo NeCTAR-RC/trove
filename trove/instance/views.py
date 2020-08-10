@@ -38,7 +38,8 @@ class InstanceView(object):
             "links": self._build_links(),
             "flavor": self._build_flavor_info(),
             "datastore": {"type": None, "version": None},
-            "region": self.instance.region_name
+            "region": self.instance.region_name,
+            "access": {}
         }
         if self.instance.datastore_version:
             instance_dict['datastore'] = {
@@ -59,6 +60,9 @@ class InstanceView(object):
 
         if self.instance.slave_of_id is not None:
             instance_dict['replica_of'] = self._build_master_info()
+
+        if self.instance.access:
+            instance_dict['access'] = self.instance.access
 
         LOG.debug(instance_dict)
         return {"instance": instance_dict}
