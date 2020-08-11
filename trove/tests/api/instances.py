@@ -776,7 +776,7 @@ class CreateInstance(object):
         # Check these attrs only are returned in create response
         allowed_attrs = ['created', 'flavor', 'addresses', 'id', 'links',
                          'name', 'status', 'updated', 'datastore', 'fault',
-                         'region', 'service_status_updated']
+                         'region', 'service_status_updated', 'access']
         if ROOT_ON_CREATE:
             allowed_attrs.append('password')
         if VOLUME_SUPPORT:
@@ -919,7 +919,7 @@ class TestGetInstances(object):
     def test_index_list(self):
         allowed_attrs = ['id', 'links', 'name', 'status', 'flavor',
                          'datastore', 'ip', 'hostname', 'replica_of',
-                         'region']
+                         'region', 'addresses', 'access']
         if VOLUME_SUPPORT:
             allowed_attrs.append('volume')
         instances = dbaas.instances.list()
@@ -941,7 +941,7 @@ class TestGetInstances(object):
         allowed_attrs = ['created', 'databases', 'flavor', 'hostname', 'id',
                          'links', 'name', 'status', 'updated', 'ip',
                          'datastore', 'fault', 'region',
-                         'service_status_updated']
+                         'service_status_updated', 'addresses', 'access']
         if VOLUME_SUPPORT:
             allowed_attrs.append('volume')
         instances = dbaas.instances.list(detailed=True)
@@ -961,7 +961,7 @@ class TestGetInstances(object):
         allowed_attrs = ['created', 'databases', 'flavor', 'hostname', 'id',
                          'links', 'name', 'status', 'updated', 'ip',
                          'datastore', 'fault', 'region',
-                         'service_status_updated']
+                         'service_status_updated', 'addresses', 'access']
         if VOLUME_SUPPORT:
             allowed_attrs.append('volume')
         else:
@@ -1040,7 +1040,8 @@ class TestGetInstances(object):
                          'flavor', 'guest_status', 'host', 'hostname', 'id',
                          'name', 'root_enabled_at', 'root_enabled_by',
                          'server_state_description', 'status', 'datastore',
-                         'updated', 'users', 'volume', 'fault', 'region']
+                         'updated', 'users', 'volume', 'fault', 'region',
+                         'access']
         with CheckInstance(result._info) as check:
             check.contains_allowed_attrs(
                 result._info, allowed_attrs,
@@ -1114,19 +1115,20 @@ class TestUpdateInstance(object):
     @test
     def test_update_name(self):
         new_name = 'new-name'
-        result = dbaas.instances.edit(instance_info.id, name=new_name)
+        result = dbaas.instances.update(instance_info.id, name=new_name)
         assert_equal(202, dbaas.last_http_code)
         result = dbaas.instances.get(instance_info.id)
         assert_equal(200, dbaas.last_http_code)
         assert_equal(new_name, result.name)
         # Restore instance name because other tests depend on it
-        dbaas.instances.edit(instance_info.id, name=instance_info.name)
+        dbaas.instances.update(instance_info.id, name=instance_info.name)
         assert_equal(202, dbaas.last_http_code)
 
     @test
     def test_update_name_to_invalid_instance(self):
         # test assigning to an instance that does not exist
         invalid_id = "invalid-inst-id"
-        assert_raises(exceptions.NotFound, instance_info.dbaas.instances.edit,
+        assert_raises(exceptions.NotFound,
+                      instance_info.dbaas.instances.update,
                       invalid_id, name='name')
         assert_equal(404, instance_info.dbaas.last_http_code)
