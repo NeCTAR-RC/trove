@@ -13,7 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-from mock import Mock
+
+from unittest.mock import MagicMock
+from unittest.mock import Mock
+
 from trove.common import cfg
 from trove.instance.views import InstanceDetailView
 from trove.instance.views import InstanceView
