@@ -106,9 +106,11 @@ class DatastoreVersionsView(object):
     def data(self, include_datastore_id=True):
         data = []
         for datastore_version in self.datastore_versions:
-            data.append(self.
-                        data_for_datastore_version(datastore_version,
-                                                   include_datastore_id))
+            if datastore_version.active:
+                data.append(self.
+                            data_for_datastore_version(
+                                datastore_version,
+                                include_datastore_id))
         return {'versions': data}
 
     def data_for_datastore_version(self, datastore_version,
