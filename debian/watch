@@ -1,0 +1,3 @@
+version=3
+opts="uversionmangle=s/\.([a-zA-Z])/~$1/;s/%7E/~/;s/\.0b/~b/;s/\.0rc/~rc/" \
+ https://tarballs.opendev.org/openstack/trove trove-(13\.\d.*)\.tar\.gz

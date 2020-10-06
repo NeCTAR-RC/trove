@@ -1,0 +1,4 @@
+install-missing-files.patch
+fix-default-sql_connection-directive.patch
+use-realpath-function-to-find-my.cnf-in-debian.patch
+monkey-patch-original-current-thread.patch
