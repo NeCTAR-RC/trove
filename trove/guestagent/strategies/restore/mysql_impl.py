@@ -83,8 +83,8 @@ class MySQLRestoreMixin(object):
         if not os.path.exists(run_dir):
             utils.execute("mkdir", run_dir,
                           run_as_root=True, root_helper="sudo")
-            utils.execute("chown", "mysql:mysql", run_dir, err_log_file.name,
-                          init_file.name, run_as_root=True, root_helper="sudo")
+        utils.execute("chown", "mysql:mysql", run_dir, err_log_file.name,
+                      init_file.name, run_as_root=True, root_helper="sudo")
 
         child = pexpect.spawn(
             "sudo mysqld_safe --init-file=%s --log-error=%s" %
