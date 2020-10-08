@@ -163,6 +163,9 @@ class Manager(manager.Manager):
                               write_to_fstab=True)
         self.app.restore_files_post_upgrade(upgrade_info)
         self.app.start_db()
+        os_admin = models.PostgreSQLUser(self.app.ADMIN_USER)
+        self.app.set_current_admin_user(os_admin)
+        self._admin = PgSqlAdmin(os_admin)
 
     def is_root_enabled(self, context):
         return self.app.is_root_enabled(context)
