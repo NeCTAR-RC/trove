@@ -415,7 +415,7 @@ class PgSqlApp(object):
         """Wrapper for pg_current_xlog_location()
         Cannot be used against a running slave
         """
-        version = int(self.pg_version[1])
+        version = float(self.pg_version[1])
         if version < 10:
             query = "SELECT pg_current_xlog_location()"
         else:
@@ -427,7 +427,7 @@ class PgSqlApp(object):
         """Wrapper for pg_last_xlog_replay_location()
          For use on standby servers
          """
-        version = int(self.pg_version[1])
+        version = float(self.pg_version[1])
         if version < 10:
             query = "SELECT pg_last_xlog_replay_location()"
         else:
@@ -517,7 +517,7 @@ class PgSqlApp(object):
         return r[0][0]
 
     def pg_xlogfile_name(self, start_segment):
-        version = int(self.pg_version[1])
+        version = float(self.pg_version[1])
         if version < 10:
             query = "SELECT pg_xlogfile_name('%s')"
         else:
