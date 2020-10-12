@@ -322,7 +322,7 @@ class InstanceController(wsgi.Controller):
             users = populate_users(body['instance'].get('users', []),
                                    database_names)
         except ValueError as ve:
-            raise exception.BadRequest(message=ve)
+            raise exception.BadRequest(message=str(ve))
 
         modules = body['instance'].get('modules')
 
