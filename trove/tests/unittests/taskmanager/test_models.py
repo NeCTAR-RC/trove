@@ -86,7 +86,8 @@ class fake_ServerManager(object):
                block_device_mapping_v2=None,
                availability_zone=None,
                nics=None, config_drive=False,
-               scheduler_hints=None, key_name=None, meta=None):
+               scheduler_hints=None, key_name=None, meta=None,
+               security_groups=[]):
         server = fake_Server()
         server.id = "server_id"
         server.name = name
@@ -99,6 +100,7 @@ class fake_ServerManager(object):
         server.nics = nics
         server.key_name = key_name
         server.meta = meta
+        server.security_groups = security_groups
         return server
 
 
@@ -318,6 +320,7 @@ class FreshInstanceTasksTest(BaseFreshInstanceTasksTest):
             scheduler_hints=None,
             key_name=None,
             meta=meta,
+            security_groups=[None],
         )
 
     @patch.object(InstanceServiceStatus, 'find_by',
@@ -392,7 +395,8 @@ class FreshInstanceTasksTest(BaseFreshInstanceTasksTest):
             mock_build_volume_info()['block_device'], None,
             [{'port-id': 'fake-port-id'}],
             mock_get_injected_files(),
-            {'group': 'sg-id'}
+            {'group': 'sg-id'},
+            'fake_security_group_id',
         )
 
     @patch.object(BaseInstance, 'update_db')
@@ -455,7 +459,8 @@ class FreshInstanceTasksTest(BaseFreshInstanceTasksTest):
                 {'port-id': 'fake-user-port-id'},
                 {'port-id': 'fake-mgmt-port-id'}
             ],
-            mock_get_injected_files(), {'group': 'sg-id'}
+            mock_get_injected_files(), {'group': 'sg-id'},
+            'fake-sg-id',
         )
         create_floatingip_param = {
             "floatingip": {

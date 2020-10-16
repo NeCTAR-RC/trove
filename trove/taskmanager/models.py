@@ -512,7 +512,7 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
             networks.append({"port-id": port_id})
 
         if not CONF.management_networks and not networks:
-            return None
+            return None, security_group
 
         # Create port in the user defined network, associate floating IP if
         # needed
@@ -533,7 +533,7 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
             "Finished to prepare networks for the instance %s, networks: %s",
             self.id, networks
         )
-        return networks
+        return networks, security_group
 
     def create_instance(self, flavor, image_id, databases, users,
                         datastore_manager, packages, volume_size,
@@ -551,7 +551,7 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
             self.id, nics, access
         )
 
-        networks = self._prepare_networks_for_instance(
+        networks, security_group = self._prepare_networks_for_instance(
             datastore_manager, nics, access=access
         )
         files = self.get_injected_files(datastore_manager)
@@ -561,7 +561,8 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
             datastore_manager, volume_size,
             availability_zone, networks,
             files, cinder_volume_type,
-            scheduler_hints
+            scheduler_hints,
+            security_group
         )
 
         config = self._render_config(flavor)
@@ -813,7 +814,7 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
 
     def _create_server_volume(self, flavor_id, image_id, datastore_manager,
                               volume_size, availability_zone, nics, files,
-                              volume_type, scheduler_hints):
+                              volume_type, scheduler_hints, security_group):
         LOG.debug("Begin _create_server_volume for id: %s", self.id)
         server = None
         volume_info = self._build_volume_info(
@@ -828,7 +829,8 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
                 datastore_manager,
                 block_device_mapping_v2,
                 availability_zone, nics, files,
-                scheduler_hints
+                scheduler_hints,
+                security_group
             )
             server_id = server.id
             # Save server ID.
@@ -965,7 +967,8 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
 
     def _create_server(self, flavor_id, image_id, datastore_manager,
                        block_device_mapping_v2, availability_zone,
-                       nics, files={}, scheduler_hints=None):
+                       nics, files={}, scheduler_hints=None,
+                       security_group=None):
         userdata = self._prepare_userdata(datastore_manager)
         metadata = {'project_id': self.tenant_id,
                     'user_id': self.context.user,
@@ -981,7 +984,7 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
             files=files, userdata=userdata,
             availability_zone=availability_zone,
             config_drive=config_drive, scheduler_hints=scheduler_hints,
-            meta=metadata,
+            meta=metadata, security_groups=[security_group],
         )
         LOG.debug("Created new compute instance %(server_id)s "
                   "for database instance %(id)s",
