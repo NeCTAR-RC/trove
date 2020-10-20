@@ -281,7 +281,6 @@ class PgSqlApp(object):
             'archive_mode': 'on',
             'max_wal_senders': 8,
             'wal_log_hints': 'on',
-            'wal_keep_segments': 8,
             'archive_command': arch_cmd
         }
 
