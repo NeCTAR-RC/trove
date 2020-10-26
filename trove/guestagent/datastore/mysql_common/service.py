@@ -669,6 +669,28 @@ class BaseMySqlApp(object):
         self._local_sql_client = local_sql_client
         self._keep_alive_connection_cls = keep_alive_connection_cls
 
+    def post_upgrade_ensure_admin(self):
+        """Handle change of admin user from rocky guests
+
+        For rocky guests admin user is host 127.0.0.1 but ussuri
+        expects localhost.
+        """
+        user = ADMIN_USER_NAME
+        password = self.get_auth_password()
+        conn_string = CONNECTION_STR_FORMAT % (
+            user, urllib.parse.quote(password.strip()))
+        conn_string = conn_string.replace('localhost', '127.0.0.1')
+        conn_string = conn_string.replace(
+            '?unix_socket=/var/run/mysqld/mysqld.sock', '')
+        engine = sqlalchemy.create_engine(conn_string, echo=True)
+        try:
+            with self.local_sql_client(engine, use_flush=False) as client:
+                self._create_admin_user(client, password)
+        except Exception:
+            LOG.info("Not setting post upgrade user since already exists")
+
+        self._save_authentication_properties(password)
+
     def _create_admin_user(self, client, password):
         """
         Create a os_admin user with a random password

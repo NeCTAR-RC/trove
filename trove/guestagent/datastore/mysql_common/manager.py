@@ -312,6 +312,7 @@ class MySqlManager(manager.Manager):
 
         self.configuration_manager.refresh_cache()
         app.start_mysql()
+        app.post_upgrade_ensure_admin()
         app.status.end_restart()
 
     def restart(self, context):
