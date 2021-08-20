@@ -1397,8 +1397,10 @@ class BuiltInstanceTasks(BuiltInstance, NotifyMixin, ConfigurationMixin):
                         sg['id'])
 
                     if new_allowed_cidrs:
-                        tcp_ports = CONF.get(self.datastore.name).tcp_ports
-                        udp_ports = CONF.get(self.datastore.name).udp_ports
+                        tcp_ports = CONF.get(
+                            self.datastore.name.lower()).tcp_ports
+                        udp_ports = CONF.get(
+                            self.datastore.name.lower()).udp_ports
 
                         neutron.create_security_group_rule(
                             self.neutron_client, sg['id'], 'tcp', tcp_ports,
