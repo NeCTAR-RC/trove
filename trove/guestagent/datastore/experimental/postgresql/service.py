@@ -583,7 +583,8 @@ class PgSqlAppStatus(service.BaseDbStatus):
     def _get_actual_db_status(self):
         try:
             utils.execute_with_timeout(
-                self._cmd, '-h', self.HOST, log_output_on_error=True)
+                self._cmd, '-h', self.HOST, '-U', self.ADMIN_USER,
+                log_output_on_error=True)
             return instance.ServiceStatuses.RUNNING
         except exception.ProcessExecutionError:
             return instance.ServiceStatuses.SHUTDOWN
