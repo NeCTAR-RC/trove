@@ -575,6 +575,7 @@ class PgSqlApp(object):
 class PgSqlAppStatus(service.BaseDbStatus):
 
     HOST = 'localhost'
+    ADMIN_USER = 'os_admin'
 
     def __init__(self, tools_dir):
         super(PgSqlAppStatus, self).__init__()
