@@ -484,6 +484,9 @@ class InstanceController(wsgi.Controller):
         if 'access' in body['instance']:
             args['access'] = body['instance']['access']
 
+        if 'datastore_version' in body['instance']:
+            args['datastore_version'] = body['instance']['datastore_version']
+
         self._modify_instance(context, req, instance, **args)
         return wsgi.Result(None, 202)
 
