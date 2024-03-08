@@ -1820,7 +1820,8 @@ class ResizeActionBase(object):
 
     def _assert_nova_status_is_ok(self):
         # Make sure Nova thinks things went well.
-        if not self.instance.server_status_matches(["VERIFY_RESIZE"]):
+        if not self.instance.server_status_matches(["VERIFY_RESIZE",
+                                                    "ACTIVE"]):
             msg = "Migration failed! status=%(act_status)s and " \
                   "not %(exp_status)s" % {
                       "act_status": self.instance.server.status,
@@ -1856,6 +1857,9 @@ class ResizeActionBase(object):
     def _confirm_nova_action(self):
         LOG.debug("Instance %s calling Compute confirm resize...",
                   self.instance.id)
+        self.instance.refresh_compute_server_info()
+        if self.instance.server_status_matches(['ACTIVE']):
+            return
         self.instance.server.confirm_resize()
 
     def _datastore_is_online(self):

@@ -715,7 +715,7 @@ class BuiltInstanceTasksTest(trove_testtools.TestCase):
     def setUp(self):
         super(BuiltInstanceTasksTest, self).setUp()
         self.new_flavor = {'id': 8, 'ram': 768, 'name': 'bigger_flavor'}
-        stub_nova_server = MagicMock()
+        stub_nova_server = MagicMock(id='12345')
         self.rpc_patches = patch.multiple(
             rpc, get_notifier=MagicMock(), get_client=MagicMock())
         self.rpc_mocks = self.rpc_patches.start()
@@ -762,10 +762,12 @@ class BuiltInstanceTasksTest(trove_testtools.TestCase):
             spec=novaclient.v2.servers.ServerManager)
         self.stub_running_server = MagicMock(
             spec=novaclient.v2.servers.Server)
+        self.stub_running_server.id = '1234'
         self.stub_running_server.status = 'HEALTHY'
         self.stub_running_server.flavor = {'id': 6, 'ram': 512}
         self.stub_verifying_server = MagicMock(
             spec=novaclient.v2.servers.Server)
+        self.stub_verifying_server.id = '1234'
         self.stub_verifying_server.status = 'VERIFY_RESIZE'
         self.stub_verifying_server.flavor = {'id': 8, 'ram': 768}
         self.stub_server_mgr.get = MagicMock(
@@ -838,7 +840,28 @@ class BuiltInstanceTasksTest(trove_testtools.TestCase):
             do_not_start_on_reboot=True)
         orig_server.resize.assert_any_call(self.new_flavor['id'])
         self.assertThat(self.db_instance.task_status, Is(InstanceTasks.NONE))
-        self.assertEqual(1, self.stub_server_mgr.get.call_count)
+        self.assertEqual(2, self.stub_server_mgr.get.call_count)
+        self.assertThat(self.db_instance.flavor_id, Is(self.new_flavor['id']))
+
+    def test_resize_flavor_auto_confirm(self):
+        stub_verifying_server = MagicMock(
+            spec=novaclient.v2.servers.Server)
+        stub_verifying_server.id = '1234'
+        stub_verifying_server.status = 'ACTIVE'
+        stub_verifying_server.flavor = {'id': 8, 'ram': 768}
+        self.stub_server_mgr.get = MagicMock(
+            return_value=self.stub_verifying_server)
+
+        orig_server = self.instance_task.server
+        self.instance_task.resize_flavor({'id': 1, 'ram': 512},
+                                         self.new_flavor)
+        # verify
+        self.assertIsNot(self.instance_task.server, orig_server)
+        self.instance_task._guest.stop_db.assert_any_call(
+            do_not_start_on_reboot=True)
+        orig_server.resize.assert_any_call(self.new_flavor['id'])
+        self.assertThat(self.db_instance.task_status, Is(InstanceTasks.NONE))
+        self.assertEqual(2, self.stub_server_mgr.get.call_count)
         self.assertThat(self.db_instance.flavor_id, Is(self.new_flavor['id']))
 
     @patch('trove.taskmanager.models.LOG')
