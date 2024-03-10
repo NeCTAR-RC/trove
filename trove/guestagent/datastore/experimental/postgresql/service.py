@@ -391,7 +391,6 @@ class PgSqlApp(object):
     def secure(self, context):
         """Create an administrative user for Trove.
         Force password encryption.
-        Also disable the built-in superuser
         """
         password = utils.generate_random_password()
 
@@ -404,9 +403,6 @@ class PgSqlApp(object):
         admin._create_database(context, os_admin_db)
         admin._create_admin_user(context, os_admin,
                                  encrypt_password=True)
-
-        PgSqlAdmin(os_admin).alter_user(context, postgres, None,
-                                        'NOSUPERUSER', 'NOLOGIN')
 
         self.set_current_admin_user(os_admin)
 
