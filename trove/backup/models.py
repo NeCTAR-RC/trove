@@ -81,6 +81,12 @@ class Backup(object):
             ds_version = instance_model.datastore_version
             parent = None
             last_backup_id = None
+            if ds_version.manager == 'postgresql' and (
+                    parent_id or incremental):
+                msg = "Incremental backup unsupported on postgresql"
+                LOG.warning(msg)
+                raise exception.BackupCreationError(msg)
+
             if parent_id:
                 # Look up the parent info or fail early if not found or if
                 # the user does not have access to the parent.
