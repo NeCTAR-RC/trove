@@ -79,7 +79,10 @@ class Root(object):
 
     @classmethod
     def delete(cls, context, instance_id):
-        load_and_verify(context, instance_id)
+        instance = load_and_verify(context, instance_id)
+        if instance.datastore_version.manager == 'postgresql':
+            raise exception.UnprocessableEntity(
+                "Disabling root is not supported on postgresql")
         create_guest_client(context, instance_id).disable_root()
 
 
