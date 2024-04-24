@@ -573,6 +573,13 @@ class PgSqlApp(object):
         upgrade_cmd = guestagent_utils.build_file_path('/usr/bin',
                                                        'pg_upgradecluster')
 
+        LOG.info("Dropping new %s cluster", new_version)
+        utils.execute_with_timeout(
+            drop_cmd, new_version, 'main',
+            log_output_on_error=True, run_as_root=True,
+            root_helper='sudo',
+            timeout=300)
+
         LOG.info('Running pg_upgradecluster for major upgrade %s->%s',
                  old_version, new_version)
         utils.execute_with_timeout(
