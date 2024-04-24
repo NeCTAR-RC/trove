@@ -370,7 +370,21 @@ class PgSqlApp(object):
         version_files = operating_system.list_files_in_directory(
             self.pgsql_base_data_dir, recursive=True, pattern='PG_VERSION',
             as_root=True)
-        version_file = sorted(version_files, key=len)[0]
+        version_file = sorted(version_files)[-1]
+        version = operating_system.read_file(version_file, as_root=True)
+        return version_file, version.strip()
+
+    @property
+    def old_pg_version(self):
+        """Find the database version file stored in the data directory.
+
+        :returns: A tuple with the path to the version file
+                  (in the root of the data directory) and the version string.
+        """
+        version_files = operating_system.list_files_in_directory(
+            self.pgsql_base_data_dir, recursive=True, pattern='PG_VERSION',
+            as_root=True)
+        version_file = sorted(version_files)[0]
         version = operating_system.read_file(version_file, as_root=True)
         return version_file, version.strip()
 
@@ -566,6 +580,32 @@ class PgSqlApp(object):
                                     as_root=True)
         self.configuration_manager.refresh_cache()
         self.status.set_ready()
+
+    def major_upgrade(self):
+        old_version = self.old_pg_version[1]
+        drop_cmd = guestagent_utils.build_file_path('/usr/bin',
+                                                    'pg_dropcluster')
+        upgrade_cmd = guestagent_utils.build_file_path('/usr/bin',
+                                                       'pg_upgradecluster')
+
+        LOG.info('Running pg_upgradecluster for major upgrade %s->%s',
+                 old_version, self.pg_version[1])
+        utils.execute_with_timeout(
+            upgrade_cmd, old_version, 'main',
+            log_output_on_error=True, run_as_root=True,
+            root_helper='sudo',
+            timeout=300)
+
+        LOG.info("Dropping old %s cluster", old_version)
+        utils.execute_with_timeout(
+            drop_cmd, old_version, 'main',
+            log_output_on_error=True, run_as_root=True,
+            root_helper='sudo',
+            timeout=300)
+
+        LOG.info("Removing old %s config", old_version)
+        old_etc_dir = os.path.join(self.pgsql_config_dir, old_version)
+        operating_system.remove(old_etc_dir, force=True, as_root=True)
 
 
 class PgSqlAppStatus(service.BaseDbStatus):

@@ -161,6 +161,10 @@ class Manager(manager.Manager):
                               device_path=upgrade_info['device'],
                               write_to_fstab=True)
         self.app.restore_files_post_upgrade(upgrade_info)
+        if self.app.old_pg_version[1] != self.app.pg_version[1]:
+            # Major upgrade
+            self.app.major_upgrade()
+
         self.app.start_db()
         os_admin = models.PostgreSQLUser(self.app.ADMIN_USER)
         self.app.set_current_admin_user(os_admin)
