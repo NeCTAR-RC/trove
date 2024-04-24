@@ -154,16 +154,21 @@ class Manager(manager.Manager):
         return upgrade_info
 
     def post_upgrade(self, context, upgrade_info):
-        LOG.debug('Finalizing Postgresql upgrade.')
+        LOG.info('Finalizing Postgresql upgrade.')
+        new_version = self.app.pg_version[1]
+        LOG.info('New version=%s', new_version)
         self.app.stop_db()
         if 'device' in upgrade_info:
             self.mount_volume(context, mount_point=upgrade_info['mount_point'],
                               device_path=upgrade_info['device'],
                               write_to_fstab=True)
         self.app.restore_files_post_upgrade(upgrade_info)
-        if self.app.old_pg_version[1] != self.app.pg_version[1]:
+        # pg_version will change once old data dir is mounted
+        old_version = self.app.pg_version[1]
+        if old_version != new_version:
             # Major upgrade
-            self.app.major_upgrade()
+            self.app.major_upgrade(old_version=old_version,
+                                   new_version=new_version)
 
         self.app.start_db()
         os_admin = models.PostgreSQLUser(self.app.ADMIN_USER)
