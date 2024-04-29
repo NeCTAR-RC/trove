@@ -1225,6 +1225,8 @@ postgresql_opts = [
                help='Character length of generated passwords.',
                deprecated_name='default_password_length',
                deprecated_group='DEFAULT'),
+    cfg.IntOpt('pg_upgradecluster_timeout', default=3600,
+               help='Timeout for pg_upgradecluster command'),
 ]
 
 # Apache CouchDB
