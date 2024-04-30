@@ -66,6 +66,7 @@ class API(object):
         self.agent_low_timeout = CONF.agent_call_low_timeout
         self.agent_high_timeout = CONF.agent_call_high_timeout
         self.agent_snapshot_timeout = CONF.agent_replication_snapshot_timeout
+        self.agent_post_upgrade_timeout = CONF.agent_post_upgrade_timeout
 
         version_cap = self.VERSION_ALIASES.get(
             CONF.upgrade_levels.guestagent, CONF.upgrade_levels.guestagent)
@@ -376,7 +377,7 @@ class API(object):
         self.client = self.get_client(self.target, version_cap)
 
         self._call("post_upgrade",
-                   self.agent_high_timeout, version=version,
+                   self.agent_post_upgrade_timeout, version=version,
                    upgrade_info=upgrade_info)
 
     def restart(self):

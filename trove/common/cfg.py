@@ -181,6 +181,9 @@ common_opts = [
     cfg.IntOpt('agent_replication_snapshot_timeout', default=36000,
                help='Maximum time (in seconds) to wait for taking a Guest '
                     'Agent replication snapshot.'),
+    cfg.IntOpt('agent_post_upgrade_timeout', default=36000,
+               help='Maximum time (in seconds) to wait for post upgrade '
+                    'steps.'),
     cfg.IntOpt('command_process_timeout', default=30,
                help='Maximum time (in seconds) to wait for out of process '
                     'commands to complete.'),
@@ -1225,8 +1228,6 @@ postgresql_opts = [
                help='Character length of generated passwords.',
                deprecated_name='default_password_length',
                deprecated_group='DEFAULT'),
-    cfg.IntOpt('pg_upgradecluster_timeout', default=3600,
-               help='Timeout for pg_upgradecluster command'),
 ]
 
 # Apache CouchDB

@@ -586,7 +586,7 @@ class PgSqlApp(object):
             upgrade_cmd, old_version, 'main',
             log_output_on_error=True, run_as_root=True,
             root_helper='sudo',
-            timeout=CONF.postgresql.pg_upgradecluster_timeout)
+            timeout=CONF.agent_post_upgrade_timeout)
 
         LOG.info("Dropping old %s cluster", old_version)
         utils.execute_with_timeout(
