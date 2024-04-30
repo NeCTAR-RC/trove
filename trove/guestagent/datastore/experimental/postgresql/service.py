@@ -98,7 +98,7 @@ class PgSqlApp(object):
             operating_system.DEBIAN: '/usr/lib/postgresql/%s/bin/',
             operating_system.REDHAT: '/usr/pgsql-%s/bin/',
             operating_system.SUSE: '/usr/bin/'
-        }[self.OS] % self.pg_version[1]
+        }[self.OS] % self.pg_version
 
     @property
     def pgsql_config(self):
@@ -114,7 +114,7 @@ class PgSqlApp(object):
 
     def _find_config_file(self, name_pattern):
         version_base = guestagent_utils.build_file_path(self.pgsql_config_dir,
-                                                        self.pg_version[1])
+                                                        self.pg_version)
         return sorted(operating_system.list_files_in_directory(
             version_base, recursive=True, pattern=name_pattern,
             as_root=True), key=len)[0]
@@ -358,7 +358,9 @@ class PgSqlApp(object):
 
     @property
     def pgsql_data_dir(self):
-        return os.path.dirname(self.pg_version[0])
+        return os.path.join(self.pgsql_base_data_dir,
+                            self.pg_version,
+                            'main')
 
     @property
     def pg_version(self):
@@ -372,7 +374,7 @@ class PgSqlApp(object):
             as_root=True)
         version_file = sorted(version_files)[-1]
         version = operating_system.read_file(version_file, as_root=True)
-        return version_file, version.strip()
+        return version.strip()
 
     def restart(self):
         self.status.restart_db_service(
@@ -410,7 +412,7 @@ class PgSqlApp(object):
         """Wrapper for pg_current_xlog_location()
         Cannot be used against a running slave
         """
-        version = float(self.pg_version[1])
+        version = float(self.pg_version)
         if version < 10:
             query = "SELECT pg_current_xlog_location()"
         else:
@@ -422,7 +424,7 @@ class PgSqlApp(object):
         """Wrapper for pg_last_xlog_replay_location()
          For use on standby servers
          """
-        version = float(self.pg_version[1])
+        version = float(self.pg_version)
         if version < 10:
             query = "SELECT pg_last_xlog_replay_location()"
         else:
@@ -512,7 +514,7 @@ class PgSqlApp(object):
         return r[0][0]
 
     def pg_xlogfile_name(self, start_segment):
-        version = float(self.pg_version[1])
+        version = float(self.pg_version)
         if version < 10:
             query = "SELECT pg_xlogfile_name('%s')"
         else:

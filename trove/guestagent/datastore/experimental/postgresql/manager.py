@@ -155,7 +155,7 @@ class Manager(manager.Manager):
 
     def post_upgrade(self, context, upgrade_info):
         LOG.info('Finalizing Postgresql upgrade.')
-        new_version = self.app.pg_version[1]
+        new_version = self.app.pg_version
         LOG.info('New version=%s', new_version)
         self.app.stop_db()
         if 'device' in upgrade_info:
@@ -164,7 +164,7 @@ class Manager(manager.Manager):
                               write_to_fstab=True)
         self.app.restore_files_post_upgrade(upgrade_info)
         # pg_version will change once old data dir is mounted
-        old_version = self.app.pg_version[1]
+        old_version = self.app.pg_version
         if old_version != new_version:
             # Major upgrade
             self.app.major_upgrade(old_version=old_version,
