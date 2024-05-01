@@ -1654,12 +1654,14 @@ class Instance(BuiltInstance):
 
     def upgrade(self, datastore_version):
         if self.datastore_version.db_info.manager == 'postgresql':
-            old_version = self.datastore_version.name.split('-')[0]
-            new_version = datastore_version.name.split('-')[0]
-            if old_version != new_version:
+            if not self.guest.is_root_enabled():
                 raise exception.TroveError(
-                    "Unable to upgrade PostgreSQL between major "
-                    "versions")
+                    "'postgres' user not superuser, please enable root "
+                    "to upgrade PostgreSQL")
+            old_version = self.datastore_version.name.split('-')[0]
+            if old_version == '9.6':
+                raise exception.TroveError(
+                    "Unable to upgrade PostgreSQL 9.6")
 
         self.update_db(datastore_version_id=datastore_version.id,
                        task_status=InstanceTasks.UPGRADING)
