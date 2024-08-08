@@ -82,7 +82,7 @@ class PgDump(base.RestoreRunner):
             # for future compatibility.
             if err:
                 for message in err.splitlines(False):
-                    if not any(regex.match(message)
+                    if not any(regex.match(message.decode('utf-8'))
                                for regex in self.IGNORED_ERROR_PATTERNS):
                         raise Exception(message)
         except OSError:
