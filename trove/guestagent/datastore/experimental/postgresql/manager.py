@@ -241,8 +241,12 @@ class Manager(manager.Manager):
         os_admin = models.PostgreSQLUser(self.app.ADMIN_USER)
 
         if backup_info:
+            if backup_info['type'] == 'PgDump':
+                self.app.start_db()
             backup.restore(context, backup_info, '/tmp')
             self.app.set_current_admin_user(os_admin)
+            if backup_info['type'] == 'PgDump':
+                self.app.stop_db()
 
         if snapshot:
             LOG.info("Found snapshot info: %s", str(snapshot))

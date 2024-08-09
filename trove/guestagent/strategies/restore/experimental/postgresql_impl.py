@@ -34,10 +34,11 @@ WAL_ARCHIVE_DIR = CONF.postgresql.wal_archive_location
 class PgDump(base.RestoreRunner):
     """Implementation of Restore Strategy for pg_dump."""
     __strategy_name__ = 'pg_dump'
-    base_restore_cmd = 'psql -U os_admin'
+    base_restore_cmd = 'psql -U postgres'
 
     IGNORED_ERROR_PATTERNS = [
         re.compile(r'ERROR:\s*role "postgres" already exists'),
+        re.compile(r'ERROR:\s*role "os_admin" already exists'),
     ]
 
     @property
