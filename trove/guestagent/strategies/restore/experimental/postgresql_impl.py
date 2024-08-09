@@ -40,6 +40,15 @@ class PgDump(base.RestoreRunner):
         re.compile(r'ERROR:\s*role "postgres" already exists'),
     ]
 
+    @property
+    def decrypt_cmd(self):
+        if self.is_encrypted:
+            return (
+                'openssl enc -d -aes-256-cbc -pbkdf2 -salt -pass pass:%s | '
+                % self.decrypt_key)
+        else:
+            return ''
+
     def restore(self):
         """We are overriding the base class behavior
         to perform custom error handling.

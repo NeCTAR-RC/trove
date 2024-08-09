@@ -38,6 +38,11 @@ class PgDump(base.BackupRunner):
     __strategy_name__ = 'pg_dump'
 
     @property
+    def encrypt_cmd(self):
+        return (' | openssl enc -aes-256-cbc -pbkdf2 -salt -pass pass:%s' %
+                self.encrypt_key) if self.is_encrypted else ''
+
+    @property
     def cmd(self):
         cmd = 'sudo -u postgres pg_dumpall '
         return cmd + self.zip_cmd + self.encrypt_cmd
