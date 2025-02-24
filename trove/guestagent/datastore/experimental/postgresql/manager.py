@@ -26,6 +26,7 @@ from trove.common import instance as trove_instance
 from trove.common.notification import EndNotification
 from trove.common import utils
 from trove.guestagent import backup
+from trove.guestagent.common import operating_system
 from trove.guestagent.datastore.experimental.postgresql.service import (
     PgSqlAdmin)
 from trove.guestagent.datastore.experimental.postgresql.service import PgSqlApp
@@ -36,6 +37,8 @@ from trove.guestagent import volume
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
+
+POSTGRES_OWNER = 'postgres'
 
 
 class Manager(manager.Manager):
@@ -163,6 +166,15 @@ class Manager(manager.Manager):
                               device_path=upgrade_info['device'],
                               write_to_fstab=True)
         self.app.restore_files_post_upgrade(upgrade_info)
+        operating_system.chown(path='/var/lib/postgresql/',
+                               user=POSTGRES_OWNER,
+                               group=POSTGRES_OWNER,
+                               recursive=True, as_root=True)
+        operating_system.chown(path='/etc/postgresql/',
+                               user=POSTGRES_OWNER,
+                               group=POSTGRES_OWNER,
+                               recursive=True, as_root=True)
+
         # pg_version will change once old data dir is mounted
         old_version = self.app.pg_version
         if old_version != new_version:

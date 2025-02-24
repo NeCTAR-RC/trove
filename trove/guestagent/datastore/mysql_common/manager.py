@@ -310,6 +310,10 @@ class MySqlManager(manager.Manager):
         self._restore_directory("%s/." % upgrade_info['save_dir'],
                                 "/etc/mysql")
 
+        operating_system.chown(path='/var/lib/mysql',
+                               user=service.MYSQL_OWNER,
+                               group=service.MYSQL_OWNER,
+                               recursive=True, as_root=True)
         self.configuration_manager.refresh_cache()
         app.start_mysql()
         app.post_upgrade_ensure_admin()
