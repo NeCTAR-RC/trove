@@ -15,6 +15,7 @@
 
 
 import os
+import time
 
 from oslo_log import log as logging
 
@@ -238,6 +239,7 @@ class Manager(manager.Manager):
                 trove_instance.ServiceStatuses.RUNNING,
                 CONF.state_change_wait_time,
                 False)):
+            time.sleep(5)
             LOG.debug("Stopping database prior to initial configuration.")
             self.app.stop_db()
 
