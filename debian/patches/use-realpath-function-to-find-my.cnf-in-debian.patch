@@ -1,0 +1,18 @@
+Description: Use realpath to find my.cnf
+ In Sid, /etc/mysql/my.cnf is a symlink to /etc/aternatives, which confuses
+ trove. This patch fixes it.
+Author: Thomas Goirand <zigo@debian.org>
+Bug-Debian: https://bugs.debian.org/829369
+Last-Update: 2016-07-26
+
+--- a/trove/guestagent/datastore/mysql_common/service.py
++++ b/trove/guestagent/datastore/mysql_common/service.py
+@@ -54,7 +54,7 @@ INCLUDE_MARKER_OPERATORS = {
+     True: ">=",
+     False: ">"
+ }
+-MYSQL_CONFIG = "/etc/mysql/my.cnf"
++MYSQL_CONFIG = os.path.realpath("/etc/mysql/my.cnf")
+ CNF_EXT = 'cnf'
+ CNF_INCLUDE_DIR = '/etc/mysql/conf.d'
+ CNF_MASTER = 'master-replication'

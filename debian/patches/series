@@ -1,0 +1,2 @@
+install-missing-files.patch
+use-realpath-function-to-find-my.cnf-in-debian.patch

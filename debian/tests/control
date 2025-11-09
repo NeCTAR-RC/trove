@@ -1,0 +1,10 @@
+Tests: trove-daemons
+Depends:
+ crudini,
+ mysql-server,
+ trove-api,
+ trove-common,
+ trove-conductor,
+ trove-guestagent,
+ trove-taskmanager,
+Restrictions: needs-root

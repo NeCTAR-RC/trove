@@ -1,0 +1,8 @@
+/var/log/trove/*.log {
+    daily
+    missingok
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+}
