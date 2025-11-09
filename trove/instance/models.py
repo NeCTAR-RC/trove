@@ -1228,6 +1228,19 @@ class Instance(BuiltInstance):
             replica_source = DBInstance.find_by(
                 context, id=slave_of_id, deleted=False)
 
+        if CONF.ensure_az:
+            if not availability_zone:
+                raise exception.TroveError(
+                    "availability_zone must be provided when creating "
+                    "an instance")
+        # Check that if the user requests an AZ that we restrict by a mapping,
+        # return a fail if the project doesn't have the required role
+        if availability_zone in CONF.az_role_mapping.keys():
+            if CONF.az_role_mapping[availability_zone] not in context.roles:
+                raise exception.TroveError(
+                    "Not authorized for access to availablity zone '%s'"
+                    % availability_zone)
+
         # If a different region is specified for the instance, ensure
         # that the flavor and image are the same in both regions
         if region_name and region_name != CONF.service_credentials.region_name:

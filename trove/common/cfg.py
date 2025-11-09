@@ -530,6 +530,11 @@ common_opts = [
         'enable_volume_az', default=False,
         help='If true create the volume in the same availability-zone as the '
              'instance'),
+    cfg.BoolOpt('ensure_az', default=False,
+                help='Ensure availability_zone attribute is used when '
+                'creating instances.'),
+    cfg.DictOpt('az_role_mapping', default={},
+                help="Mapping between availability zone and role"),
 ]
 
 
