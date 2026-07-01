@@ -757,18 +757,28 @@ class DatastoreVersionMetadata(object):
 
     @classmethod
     def list_datastore_version_flavor_associations(cls, context,
-                                                   datastore_version_id):
+                                                   datastore_version_id=None):
         """Get allowed flavors for a given datastore version.
 
         All nova flavors are permitted for a datastore_version unless
         one or more entries are found in datastore_version_metadata,
         in which case only those are permitted.
+
+        If datastore_version_id is not given, return the flavors bound
+        across all datastore/versions (or all flavors, if none are
+        bound anywhere) - useful for listing flavors before a specific
+        datastore/version has been chosen.
         """
         nova_flavors = create_nova_client(context).flavors.list()
-        bound_flavors = DBDatastoreVersionMetadata.find_all(
-            datastore_version_id=datastore_version_id,
-            key='flavor', deleted=False
-        )
+        if datastore_version_id:
+            bound_flavors = DBDatastoreVersionMetadata.find_all(
+                datastore_version_id=datastore_version_id,
+                key='flavor', deleted=False
+            )
+        else:
+            bound_flavors = DBDatastoreVersionMetadata.find_all(
+                key='flavor', deleted=False
+            )
         if (bound_flavors.count() != 0):
             bound_flavors = tuple(f.value for f in bound_flavors)
             # Generate a filtered list of nova flavors
