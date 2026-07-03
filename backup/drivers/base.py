@@ -55,10 +55,9 @@ class BaseRunner(object):
             raise Exception("Encryption key not provided with an encrypted "
                             "backup.")
 
-        self.restore_command = ''
-        # Only decrypt if the object name ends with .enc
-        if self.location.endswith('.enc'):
-            self.restore_command = self.decrypt_cmd
+        # Decryption (if the object name ends with .enc) and gzip
+        # decompression are handled as separate pipeline stages ahead of
+        # this command in unpack(); this is just the actual restore command.
         self.restore_command = self.restore_cmd % kwargs
         self.prepare_command = self.prepare_cmd % kwargs
 
@@ -101,11 +100,13 @@ class BaseRunner(object):
         """Decryption command.
 
         Since Victoria, trove no longer encrypts the backup data for the end
-        user. This command is only for backward compatibility.
+        user. This command is only for backward compatibility. Run as its
+        own pipeline stage in unpack(), not shelled out to, so no trailing
+        pipe here.
         """
         if self.encrypt_key:
             return ('openssl enc -d -aes-256-cbc -md sha512 -pbkdf2 -iter '
-                    '10000 -salt -pass pass:%s | '
+                    '10000 -salt -pass pass:%s'
                     % self.encrypt_key)
         else:
             return ''
@@ -203,8 +204,12 @@ class BaseRunner(object):
 
         LOG.info('Running restore from stream, command: %s', command)
         content_length = 0
-        if not re.match(r'.*.gz', location) or not self._gzip:
-            LOG.info('gz processor without gz file or with gzip disabled')
+
+        is_encrypted = location.endswith('.enc')
+        is_gzipped = bool(self._gzip and re.match(r'.*.gz', location))
+
+        if not is_encrypted and not is_gzipped:
+            LOG.info('No decrypt/gzip filtering needed')
             self.process = subprocess.Popen(command.split(), shell=False,
                                             stdin=subprocess.PIPE,
                                             stdout=subprocess.PIPE,
@@ -214,20 +219,42 @@ class BaseRunner(object):
                 content_length += len(chunk)
             stdout, stderr = self.process.communicate()
         else:
-            LOG.info('gz processor with gz file')
-            gunzip = subprocess.Popen(["gzip", "-d", "-c"], shell=False,
-                                      stdin=subprocess.PIPE,
-                                      stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
+            LOG.info('Filtering restore stream: encrypted=%s, gzipped=%s',
+                     is_encrypted, is_gzipped)
+            # Chain whichever of decrypt/gunzip apply ahead of the restore
+            # command, each stage's stdout feeding the next one's stdin.
+            first_stage = None
+            upstream = None
+            if is_encrypted:
+                first_stage = subprocess.Popen(
+                    self.decrypt_cmd.split(), shell=False,
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE)
+                upstream = first_stage
+            if is_gzipped:
+                gunzip_stdin = subprocess.PIPE
+                if upstream:
+                    gunzip_stdin = upstream.stdout
+                gunzip = subprocess.Popen(
+                    ["gzip", "-d", "-c"], shell=False,
+                    stdin=gunzip_stdin, stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE)
+                if upstream:
+                    upstream.stdout.close()
+                upstream = gunzip
+                if first_stage is None:
+                    first_stage = gunzip
+
             self.process = subprocess.Popen(command.split(), shell=False,
-                                            stdin=gunzip.stdout,
+                                            stdin=upstream.stdout,
                                             stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE)
+            upstream.stdout.close()
+
             for chunk in stream:
-                gunzip.stdin.write(chunk)  # write data to mbstream
+                first_stage.stdin.write(chunk)  # write data to mbstream
                 content_length += len(chunk)
-            gunzip.stdin.close()
-            gunzip.stdout.close()
+            first_stage.stdin.close()
             stdout, stderr = self.process.communicate()
         stdout_str = stdout.decode()
         stderr_str = stderr.decode()
