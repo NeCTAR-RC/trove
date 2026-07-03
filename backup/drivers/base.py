@@ -103,10 +103,15 @@ class BaseRunner(object):
         user. This command is only for backward compatibility. Run as its
         own pipeline stage in unpack(), not shelled out to, so no trailing
         pipe here.
+
+        Must match the encrypt command backups were actually created with
+        pre-Victoria (see e.g. nectar/ussuri's
+        trove/guestagent/strategies/backup/base.py) - no -md/-pbkdf2/-iter,
+        since those change the key derivation and silently produce garbage
+        plaintext against data encrypted with OpenSSL's legacy KDF.
         """
         if self.encrypt_key:
-            return ('openssl enc -d -aes-256-cbc -md sha512 -pbkdf2 -iter '
-                    '10000 -salt -pass pass:%s'
+            return ('openssl enc -d -aes-256-cbc -salt -pass pass:%s'
                     % self.encrypt_key)
         else:
             return ''
