@@ -45,8 +45,10 @@ class PgBasebackup(base.BaseRunner):
 
         super(PgBasebackup, self).__init__(*args, **kwargs)
 
-        self.restore_command = (f"{self.decrypt_cmd}tar xzf - -C "
-                                f"{self.datadir}")
+        # Decryption (if the object name ends with .enc) is handled as its
+        # own pipeline stage ahead of this command in unpack(); this is
+        # just the actual restore command.
+        self.restore_command = f"tar xzf - -C {self.datadir}"
 
     @property
     def cmd(self):
@@ -273,10 +275,12 @@ class PgBasebackupIncremental(PgBasebackup):
         return _meta
 
     def incremental_restore_cmd(self, incr=False):
+        # Decryption (if the object name ends with .enc) is handled as its
+        # own pipeline stage ahead of this command in unpack().
         cmd = self.restore_command
         if incr:
             cmd = self.incr_restore_cmd
-        return self.decrypt_cmd + cmd
+        return cmd
 
     def incremental_restore(self, location, checksum):
         """Perform incremental restore.

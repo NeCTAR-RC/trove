@@ -15,7 +15,7 @@
 import os
 
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -232,6 +232,91 @@ class TestPgBasebackup(unittest.TestCase):
 
         # assertions
         self.assertTrue(ret)
+
+
+class TestPgBasebackupEncryption(unittest.TestCase):
+    """Regression coverage for restore_command/incremental_restore_cmd
+    previously baking self.decrypt_cmd into the command string that gets
+    passed to unpack(), which broke once unpack() started handling
+    decryption as its own pipeline stage (rather than a shell-piped
+    string prefix).
+    """
+
+    def setUp(self):
+        self.runner_cls = importutils.import_class(
+            driver_mapping['pg_basebackup'])
+        self.params = {
+            'wal_archive_dir': './',
+            'filename': '000000010000000000000006.00000168.backup',
+        }
+
+    def _make_runner(self, encrypt_key):
+        with patch.object(self.runner_cls, 'encrypt_key', encrypt_key):
+            runner = self.runner_cls(**self.params)
+        runner.encrypt_key = encrypt_key
+        return runner
+
+    def test_restore_command_excludes_decrypt_cmd(self):
+        runner = self._make_runner('k3y')
+
+        self.assertEqual(
+            'tar xzf - -C /var/lib/postgresql/data/pgdata',
+            runner.restore_command)
+
+    def test_incremental_restore_cmd_excludes_decrypt_cmd(self):
+        incremental_cls = importutils.import_class(
+            driver_mapping['pg_basebackup_inc'])
+        with patch.object(incremental_cls, 'encrypt_key', 'k3y'):
+            runner = incremental_cls(**self.params)
+        runner.encrypt_key = 'k3y'
+
+        self.assertEqual(
+            'tar xzf - -C /var/lib/postgresql/data/pgdata',
+            runner.incremental_restore_cmd(incr=False))
+        self.assertEqual(
+            runner.incr_restore_cmd,
+            runner.incremental_restore_cmd(incr=True))
+
+    @patch('backup.drivers.base.subprocess.Popen')
+    def test_unpack_encrypted_restore_pipeline(self, mock_popen):
+        '''Postgres restore never has a separate gunzip stage (tar -z
+        decompresses inline), so an encrypted restore should be exactly
+        two stages: decrypt -> tar. This only checks pipeline structure -
+        which KDF flags decrypt_cmd actually uses is a separate concern.
+        '''
+        procs = []
+
+        def _side_effect(*args, **kwargs):
+            proc = MagicMock(name='popen-%d' % len(procs))
+            proc.communicate.return_value = (b'', b'')
+            proc.returncode = 0
+            procs.append(proc)
+            return proc
+
+        mock_popen.side_effect = _side_effect
+
+        runner = self._make_runner('k3y')
+        runner.location = 'backup.tar.gz.enc'
+        runner.checksum = 'fakechecksum'
+        runner.storage = MagicMock()
+        runner.storage.load.return_value = [b'chunk1', b'chunk2']
+
+        runner.run_restore()
+
+        self.assertEqual(2, mock_popen.call_count)
+        decrypt_proc, restore_proc = procs
+
+        decrypt_args = mock_popen.call_args_list[0][0][0]
+        self.assertEqual('openssl', decrypt_args[0])
+
+        restore_args = mock_popen.call_args_list[1][0][0]
+        self.assertEqual('tar', restore_args[0])
+        self.assertEqual(
+            decrypt_proc.stdout, mock_popen.call_args_list[1][1]['stdin'])
+        self.assertEqual(runner.process, restore_proc)
+
+        decrypt_proc.stdin.write.assert_any_call(b'chunk1')
+        decrypt_proc.stdin.write.assert_any_call(b'chunk2')
 
 
 class TestPgBasebackupIncremental(unittest.TestCase):
