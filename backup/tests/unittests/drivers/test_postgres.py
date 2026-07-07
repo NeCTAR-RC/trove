@@ -256,6 +256,17 @@ class TestPgBasebackupEncryption(unittest.TestCase):
         runner.encrypt_key = encrypt_key
         return runner
 
+    def test_decrypt_cmd_uses_pbkdf2(self):
+        '''Postgres backups were encrypted with -pbkdf2, unlike
+        mysql/mariadb - the decrypt command must match.
+        '''
+        runner = self._make_runner('k3y')
+
+        self.assertIn('-pbkdf2', runner.decrypt_cmd.split())
+        self.assertNotIn('-md', runner.decrypt_cmd.split())
+        self.assertNotIn('-iter', runner.decrypt_cmd.split())
+        self.assertIn('pass:k3y', runner.decrypt_cmd.split())
+
     def test_restore_command_excludes_decrypt_cmd(self):
         runner = self._make_runner('k3y')
 

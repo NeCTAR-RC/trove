@@ -57,6 +57,34 @@ class PgBasebackup(base.BaseRunner):
         return cmd + self.encrypt_cmd
 
     @property
+    def decrypt_cmd(self):
+        """Decryption command.
+
+        Overrides BaseRunner.decrypt_cmd, which is tuned for our own
+        pre-Victoria mysql/mariadb backups (no -pbkdf2/-md/-iter). Postgres
+        is different: pre-Victoria, upstream trove's postgres backup
+        strategy used -pbkdf2 (no -md/-iter) - see nectar/ussuri's
+        trove/guestagent/strategies/backup/experimental/postgresql_impl.py.
+
+        This is correct for restoring backups from that pre-Victoria era,
+        which is all we have (nectar's fork jumped straight from Ussuri to
+        Bobcat and never ran a live Victoria deployment). It is NOT correct
+        for genuine Victoria-era encrypted backups (any datastore): from
+        aa1d4d22 ("Datastore containerization", 2020-04-07) trove used
+        -md sha512 -pbkdf2 -iter 10000 for all datastores via this same
+        containerized mechanism, and that stayed the case for the entire
+        stable/victoria branch's life (encryption was only disabled for
+        Wallaby onward, by bd2b256a, which was never backported to
+        stable/victoria). If you ever need to restore a real Victoria-era
+        encrypted postgres backup, this override is wrong for it.
+        """
+        if self.encrypt_key:
+            return ('openssl enc -d -aes-256-cbc -pbkdf2 -salt -pass pass:%s'
+                    % self.encrypt_key)
+        else:
+            return ''
+
+    @property
     def manifest(self):
         """Target file name."""
         return "%s.tar.gz%s" % (self.filename, self.encrypt_manifest)
