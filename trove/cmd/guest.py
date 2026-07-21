@@ -71,6 +71,17 @@ def main():
                  "was not injected into the guest or not read by guestagent"))
         raise RuntimeError(msg)
     if CONF.network_isolation:
+        # Nectarism: on the default network the eth1 config is only a
+        # discovery marker. Resolve it here, before anything reads it: the
+        # user port lookup below needs the real mac, and the interface
+        # addresses are still up at this point. Failures are not fatal
+        # here, prepare resolves it again and fails the instance properly.
+        try:
+            guestagent_utils.resolve_eth1_config()
+        except Exception as e:
+            LOG.warning("failed to resolve the eth1 config due to: %s. "
+                        "pass...", str(e))
+
         # disable user-defined port to avoid potential default gateway
         # conflict
         try:
