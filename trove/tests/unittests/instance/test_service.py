@@ -16,6 +16,7 @@ from unittest import mock
 
 from trove.common import cfg
 from trove.common import clients
+from trove.common import constants
 from trove.common import exception
 from trove.common import timeutils
 from trove.datastore import models as ds_models
@@ -282,3 +283,73 @@ class TestInstanceController(trove_testtools.TestCase):
 
         self.assertEqual('ACTIVE', ret_instance.get('status'))
         self.assertEqual('ERROR', ret_instance.get('operating_status'))
+
+
+class TestCheckNic(trove_testtools.TestCase):
+    """Tests for InstanceController._check_nic.
+
+    Kept separate from TestInstanceController as these tests do not need
+    the datastore fixtures.
+    """
+
+    default_id = constants.DEFAULT_NETWORK_ID
+
+    def setUp(self):
+        super(TestCheckNic, self).setUp()
+        self.controller = service.InstanceController()
+
+    def test_check_nic_default_network(self):
+        nic = {'net-id': self.default_id}
+        self.controller._check_nic(mock.MagicMock(), nic)
+
+        self.assertEqual({'network_id': self.default_id}, nic)
+
+    def test_check_nic_default_network_with_subnet_not_allowed(self):
+        nic = {'net-id': self.default_id, 'subnet_id': 'fake-subnet'}
+        self.assertRaises(
+            exception.BadRequest,
+            self.controller._check_nic, mock.MagicMock(), nic)
+
+    def test_check_nic_default_network_public_not_allowed(self):
+        nic = {'net-id': self.default_id}
+        self.assertRaises(
+            exception.BadRequest,
+            self.controller._check_nic, mock.MagicMock(), nic,
+            access={'is_public': True})
+
+
+class TestCheckAccess(trove_testtools.TestCase):
+    """Tests for InstanceController._check_access."""
+
+    def setUp(self):
+        super(TestCheckAccess, self).setUp()
+        self.controller = service.InstanceController()
+        self.instance = mock.MagicMock(id='inst-id')
+        self.patch_conf_property('management_networks', ['mgmt-net'])
+
+    @mock.patch.object(clients, 'create_neutron_client')
+    def test_is_public_with_trove_managed_port(self, mock_client):
+        mock_client.return_value.list_ports.return_value = {
+            'ports': [{'network_id': 'mgmt-net'},
+                      {'network_id': 'user-net'}]}
+
+        self.controller._check_access(mock.MagicMock(), self.instance,
+                                      {'is_public': True})
+
+    @mock.patch.object(clients, 'create_neutron_client')
+    def test_is_public_without_trove_managed_port(self, mock_client):
+        # Default network: nova created the user port, so trove has nothing
+        # to associate a floating IP with.
+        mock_client.return_value.list_ports.return_value = {
+            'ports': [{'network_id': 'mgmt-net'}]}
+
+        self.assertRaises(
+            exception.BadRequest, self.controller._check_access,
+            mock.MagicMock(), self.instance, {'is_public': True})
+
+    @mock.patch.object(clients, 'create_neutron_client')
+    def test_making_instance_private_is_always_allowed(self, mock_client):
+        self.controller._check_access(mock.MagicMock(), self.instance,
+                                      {'is_public': False})
+
+        mock_client.assert_not_called()

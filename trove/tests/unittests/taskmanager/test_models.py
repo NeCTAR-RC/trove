@@ -43,6 +43,7 @@ import trove.guestagent.api
 
 from trove.backup import models as backup_models
 from trove.backup import state
+from trove.common import constants
 from trove.common import exception
 from trove.common.exception import GuestError
 from trove.common.exception import PollTimeOut
@@ -482,7 +483,8 @@ class FreshInstanceTasksTest(BaseFreshInstanceTasksTest):
             mock_build_volume_info()['block_device'], None,
             [{'port-id': 'fake-port-id'}],
             mock_get_injected_files(),
-            {'group': 'sg-id'}
+            {'group': 'sg-id'},
+            None
         )
 
     @patch.object(BaseInstance, 'update_db')
@@ -567,7 +569,8 @@ class FreshInstanceTasksTest(BaseFreshInstanceTasksTest):
                 {'port-id': 'fake-user-port-id'},
                 {'port-id': 'fake-mgmt-port-id'}
             ],
-            mock_get_injected_files(), {'group': 'sg-id'}
+            mock_get_injected_files(), {'group': 'sg-id'},
+            None
         )
         create_floatingip_param = {
             "floatingip": {
@@ -578,6 +581,87 @@ class FreshInstanceTasksTest(BaseFreshInstanceTasksTest):
         }
         mock_client.create_floatingip.assert_called_once_with(
             create_floatingip_param
+        )
+
+    @patch.object(BaseInstance, 'update_db')
+    @patch.object(taskmanager_models.FreshInstanceTasks, '_create_dns_entry')
+    @patch.object(taskmanager_models.FreshInstanceTasks, 'get_injected_files')
+    @patch.object(taskmanager_models.FreshInstanceTasks, '_create_server')
+    @patch.object(taskmanager_models.FreshInstanceTasks, '_build_volume_info')
+    @patch.object(taskmanager_models.FreshInstanceTasks, '_create_root_volume')
+    @patch.object(taskmanager_models.FreshInstanceTasks, '_guest_prepare')
+    @patch.object(template, 'SingleInstanceConfigTemplate')
+    @patch('trove.common.clients_admin.neutron_client_trove_admin')
+    def test_create_instance_with_default_network(
+            self,
+            mock_neutron_client,
+            mock_single_instance_template,
+            mock_guest_prepare,
+            mock_create_root_volume,
+            mock_build_volume_info,
+            mock_create_server,
+            mock_get_injected_files,
+            *args):
+        default_id = constants.DEFAULT_NETWORK_ID
+        self.patch_conf_property('management_networks', ['fake-mgmt-uuid'])
+
+        mock_client = MagicMock()
+        mock_client.create_security_group.return_value = {
+            'security_group': {'id': 'fake-sg-id'}
+        }
+        mock_client.create_port.side_effect = [
+            {'port': {'id': 'fake-mgmt-port-id'}},
+        ]
+        mock_client.show_port.return_value = {
+            'port': {
+                'mac_address': 'fa:16:3e:aa:bb:cc',
+                'fixed_ips': []
+            }
+        }
+        mock_neutron_client.return_value = mock_client
+
+        mock_flavor = {'id': 8, 'ram': 768, 'name': 'bigger_flavor'}
+        config_content = {'config_contents': 'some junk'}
+        mock_single_instance_template.return_value.config_contents = (
+            config_content)
+
+        self.freshinstancetasks.create_instance(
+            mock_flavor, 'mysql-image-id', None,
+            None, 'mysql', 'mysql-server',
+            2, None, None,
+            None,
+            [{'network_id': default_id}, {'net-id': 'fake-mgmt-uuid'}],
+            mock.ANY,
+            None, None, 'volume_type',
+            None, {'group': 'sg-id'}
+        )
+
+        # Only the management port is pre-created; the user port is left
+        # to Nova.
+        mock_client.create_port.assert_called_once()
+
+        image_id = 'mysql-image-id'
+        if cfg.CONF.volume_rootdisk_support:
+            image_id = None
+        mock_create_server.assert_called_with(
+            8, image_id, 'mysql',
+            mock_build_volume_info()['block_device'], None,
+            [
+                {'net-id': default_id},
+                {'port-id': 'fake-mgmt-port-id'}
+            ],
+            mock_get_injected_files(),
+            {'group': 'sg-id'},
+            ['fake-sg-id']
+        )
+
+        # The eth1 config is a discovery marker built from the management
+        # port MAC instead of user port details.
+        mock_client.show_port.assert_called_with('fake-mgmt-port-id')
+        mock_get_injected_files.return_value.__setitem__.assert_called_with(
+            constants.ETH1_CONFIG_PATH,
+            json.dumps({'mode': 'discover',
+                        'mgmt_mac': 'fa:16:3e:aa:bb:cc'})
         )
 
     @patch.object(BaseInstance, 'update_db')

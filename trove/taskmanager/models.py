@@ -514,10 +514,17 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
         'nics' contains the networks that management network always comes at
         last.
 
-        returns a list of dicts which only contains port-id.
+        returns a tuple of (networks, boot_security_groups). networks is a
+        list of dicts containing port-id entries, except for the Nectar
+        default-network sentinel which is kept as a net-id entry for Nova
+        to resolve. boot_security_groups is either None or a list of
+        security groups to pass in the Nova boot request, used when Nova
+        creates the user port itself so the port still gets the instance
+        security group.
         """
         LOG.info("Preparing networks for the instance %s", self.id)
         security_group = None
+        boot_security_groups = None
         networks = copy.deepcopy(nics)
         access = access or {}
 
@@ -548,28 +555,49 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
             networks.append({"port-id": port_id})
 
         if not CONF.management_networks and not networks:
-            return None
+            return None, None
 
         # Create port in the user defined network, associate floating IP if
         # needed
         if len(networks) > 1 or not CONF.management_networks:
             network_info = networks.pop(0)
-            port_sgs = [security_group] if security_group else []
-            port_id = self._create_port(
-                network_info,
-                port_sgs,
-                is_mgmt=False,
-                is_public=access.get('is_public', False),
-            )
-            LOG.info("User port %s created for instance %s", port_id,
-                     self.id)
-            networks.insert(0, {"port-id": port_id})
+            # Only the instance API normalises net-id to network_id, other
+            # callers such as cluster create pass the nic through as it was
+            # given, so accept both spellings here. Getting this wrong
+            # means falling through to _create_port() on the sentinel,
+            # which is exactly what this code exists to avoid.
+            network_id = network_info.get('network_id',
+                                          network_info.get('net-id'))
+            if network_id == constants.DEFAULT_NETWORK_ID:
+                # The Nectar default-network sentinel: Nova replaces it with
+                # the default network of the compute host at scheduling time
+                # (see the Nectar nova default_networks patches), so no port
+                # can be pre-created here. The instance security group is
+                # passed in the boot request so Nova applies it to the port
+                # it creates.
+                LOG.info(
+                    "Deferring port creation to Nova for the default "
+                    "network, instance %s", self.id)
+                networks.insert(0, {"net-id": network_id})
+                if security_group:
+                    boot_security_groups = [security_group]
+            else:
+                port_sgs = [security_group] if security_group else []
+                port_id = self._create_port(
+                    network_info,
+                    port_sgs,
+                    is_mgmt=False,
+                    is_public=access.get('is_public', False),
+                )
+                LOG.info("User port %s created for instance %s", port_id,
+                         self.id)
+                networks.insert(0, {"port-id": port_id})
 
         LOG.info(
             "Finished to prepare networks for the instance %s, networks: %s",
             self.id, networks
         )
-        return networks
+        return networks, boot_security_groups
 
     def _get_user_nic_info(self, port_id):
         nic_info = dict()
@@ -612,13 +640,35 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
             "Creating instance %s, nics: %s, access: %s",
             self.id, nics, access
         )
-        networks = self._prepare_networks_for_instance(
+        networks, boot_security_groups = self._prepare_networks_for_instance(
             datastore_manager, nics, access=access
         )
 
         if CONF.network.network_isolation and len(nics) > 1:
             # the user defined port is always the first one.
-            nic_info = self._get_user_nic_info(networks[0]["port-id"])
+            if "port-id" in networks[0]:
+                nic_info = self._get_user_nic_info(networks[0]["port-id"])
+            else:
+                # Nectar default network: the user port is only created by
+                # Nova at scheduling time, so its details cannot be known
+                # here. Inject a discovery marker instead; the guest agent
+                # resolves it at boot time by picking the interface that is
+                # not the management port.
+                # The management port is always the last one. Without it the
+                # guest has no way to tell the interfaces apart and could
+                # move the management interface into the database container,
+                # cutting off the guest agent, so refuse to build the marker.
+                mgmt_port_id = networks[-1].get("port-id")
+                if not mgmt_port_id:
+                    raise TroveError(
+                        "Cannot use the default network for instance %s "
+                        "without a management port" % self.id)
+                mgmt_port = self.neutron_client.show_port(
+                    mgmt_port_id)['port']
+                nic_info = {
+                    "mode": "discover",
+                    "mgmt_mac": mgmt_port["mac_address"],
+                }
             LOG.debug("Generate the eth1_config.json file: %s", nic_info)
             files = self.get_injected_files(datastore_manager,
                                             ds_version,
@@ -648,7 +698,8 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
             datastore_manager, volume_size,
             availability_zone, networks,
             files, cinder_snapshot_id,
-            cinder_volume_type, scheduler_hints
+            cinder_volume_type, scheduler_hints,
+            boot_security_groups
         )
 
         config = self._render_config(flavor)
@@ -894,7 +945,8 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
 
     def _create_server_volume(self, flavor_id, image_id, datastore_manager,
                               volume_size, availability_zone, nics, files,
-                              snapshot_id, volume_type, scheduler_hints):
+                              snapshot_id, volume_type, scheduler_hints,
+                              boot_security_groups=None):
         LOG.debug("Begin _create_server_volume for instance: %s", self.id)
         server = None
         volume_info = self._build_volume_info(
@@ -921,7 +973,8 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
                 datastore_manager,
                 block_device_mapping_v2,
                 availability_zone, nics, files,
-                scheduler_hints
+                scheduler_hints,
+                boot_security_groups
             )
             server_id = server.id
             # Save server ID.
@@ -1095,7 +1148,8 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
 
     def _create_server(self, flavor_id, image_id, datastore_manager,
                        block_device_mapping_v2, availability_zone,
-                       nics, files={}, scheduler_hints=None):
+                       nics, files={}, scheduler_hints=None,
+                       boot_security_groups=None):
         userdata = self.prepare_userdata(datastore_manager)
         metadata = {'trove_project_id': self.tenant_id,
                     'trove_user_id': self.context.user_id,
@@ -1115,13 +1169,19 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
                     userdata)
             files = {}
 
+        create_kwargs = {}
+        if boot_security_groups:
+            # Only used for the Nectar default network, where Nova creates
+            # the user port and applies the requested security groups to it.
+            create_kwargs['security_groups'] = boot_security_groups
+
         server = self.nova_client.servers.create(
             self.name, image_id, flavor_id, key_name=key_name, nics=nics,
             block_device_mapping_v2=bdmap_v2,
             files=files, userdata=userdata,
             availability_zone=availability_zone,
             config_drive=config_drive, scheduler_hints=scheduler_hints,
-            meta=metadata,
+            meta=metadata, **create_kwargs,
         )
         LOG.debug("Created new compute instance %(server_id)s "
                   "for database instance %(id)s",

@@ -791,6 +791,31 @@ class BaseInstance(SimpleInstance):
                     LOG.warning("Failed to delete compute server %s",
                                 self.server_id, str(e))
 
+        def server_is_finished():
+            try:
+                server = self.nova_client.servers.get(self.server_id)
+                LOG.debug(f"Compute server {self.server_id} status "
+                          f"{server.status}")
+                return False
+            except nova_exceptions.NotFound:
+                return True
+
+        # Wait for the compute server to go away before touching the network
+        # resources. Ports that nova created itself, rather than trove
+        # pre-creating them, are only deleted as part of the server deletion,
+        # and the security group cannot be deleted while such a port still
+        # references it.
+        if old_server:
+            try:
+                LOG.info("Waiting for compute server %s removal for "
+                         "instance %s", self.server_id, self.id)
+                utils.poll_until(server_is_finished, sleep_time=2,
+                                 time_out=CONF.server_delete_time_out)
+            except exception.PollTimeOut:
+                LOG.warning("Failed to delete instance %(instance_id)s: "
+                            "Timeout deleting compute server %(vm_id)s",
+                            {'instance_id': self.id, 'vm_id': self.server_id})
+
         # Neutron ports (floating IP)
         try:
             ret = self.neutron_client.list_ports(name='trove-%s' % self.id)
@@ -832,26 +857,6 @@ class BaseInstance(SimpleInstance):
         except Exception as e:
             LOG.warning("Failed to delete server group for %s, error: %s",
                         self.id, str(e))
-
-        def server_is_finished():
-            try:
-                server = self.nova_client.servers.get(self.server_id)
-                LOG.debug(f"Compute server {self.server_id} status "
-                          f"{server.status}")
-                return False
-            except nova_exceptions.NotFound:
-                return True
-
-        if old_server:
-            try:
-                LOG.info("Waiting for compute server %s removal for "
-                         "instance %s", self.server_id, self.id)
-                utils.poll_until(server_is_finished, sleep_time=2,
-                                 time_out=CONF.server_delete_time_out)
-            except exception.PollTimeOut:
-                LOG.warning("Failed to delete instance %(instance_id)s: "
-                            "Timeout deleting compute server %(vm_id)s",
-                            {'instance_id': self.id, 'vm_id': self.server_id})
 
         # Cinder volume.
         vols = self.volume_client.volumes.list(

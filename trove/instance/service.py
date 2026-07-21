@@ -23,6 +23,7 @@ from trove.backup import views as backup_views
 import trove.common.apischema as apischema
 from trove.common import cfg
 from trove.common import clients
+from trove.common import constants
 from trove.common import exception
 from trove.common import glance as common_glance
 from trove.common.i18n import _
@@ -283,14 +284,15 @@ class InstanceController(wsgi.Controller):
             instance.delete()
         return wsgi.Result(None, 202)
 
-    def _check_nic(self, context, nic):
+    def _check_nic(self, context, nic, access=None):
         """Check user provided nic.
 
         :param context: User context.
         :param nic: A dict may contain network_id(net-id), subnet_id or
             ip_address.
+        :param access: Optional dict with the instance access rules, e.g.
+            is_public and allowed_cidrs.
         """
-        neutron_client = clients.create_neutron_client(context)
         network_id = nic.get('network_id', nic.get('net-id'))
         subnet_id = nic.get('subnet_id')
         ip_address = nic.get('ip_address')
@@ -301,6 +303,23 @@ class InstanceController(wsgi.Controller):
         if not subnet_id and ip_address:
             raise exception.NetworkNotProvided(resource='subnet')
 
+        if network_id == constants.DEFAULT_NETWORK_ID:
+            # The Nectar default-network sentinel: the actual network is
+            # only selected by Nova at scheduling time, so nothing
+            # referring to a real port or subnet can be honoured here.
+            if subnet_id or ip_address:
+                raise exception.BadRequest(
+                    message="subnet_id and ip_address cannot be used with "
+                            "the default network")
+            if access and access.get('is_public'):
+                raise exception.BadRequest(
+                    message="access.is_public is not supported for "
+                            "instances on the default network")
+            nic['network_id'] = network_id
+            nic.pop('net-id', None)
+            return
+
+        neutron_client = clients.create_neutron_client(context)
         if subnet_id:
             actual_network = neutron_client.show_subnet(
                 subnet_id)['subnet']['network_id']
@@ -470,7 +489,7 @@ class InstanceController(wsgi.Controller):
             if slave_of_id and nic.get('ip_address'):
                 msg = "Cannot specify IP address when creating replicas."
                 raise exception.BadRequest(message=msg)
-            self._check_nic(context, nic)
+            self._check_nic(context, nic, access=access)
 
         if locality:
             locality_domain = [
@@ -506,6 +525,33 @@ class InstanceController(wsgi.Controller):
                 configuration_id = utils.get_id_from_href(configuration_ref)
                 return configuration_id
             return None
+
+    def _check_access(self, context, instance, access):
+        """Check an access update against the ports trove actually manages.
+
+        :param context: User context.
+        :param instance: The instance being updated.
+        :param access: Dict with the instance access rules, e.g. is_public
+            and allowed_cidrs.
+        """
+        if not access or not access.get('is_public'):
+            return
+
+        # On the default network nova creates the user port, so there is no
+        # trove managed port to associate a floating IP with: update_access
+        # would find nothing to do and still record the instance as public.
+        # Creating an instance that way is already refused in _check_nic,
+        # refuse it here too rather than lie about the result.
+        neutron_client = clients.create_neutron_client(context)
+        ports = neutron_client.list_ports(
+            name='trove-%s' % instance.id)['ports']
+        if any(port['network_id'] not in CONF.management_networks
+               for port in ports):
+            return
+
+        raise exception.BadRequest(
+            message="access.is_public is not supported for instances on "
+                    "the default network")
 
     def _modify_instance(self, context, req, instance, **kwargs):
         if 'detach_replica' in kwargs and kwargs['detach_replica']:
@@ -545,6 +591,7 @@ class InstanceController(wsgi.Controller):
                 instance.upgrade(datastore_version)
 
         if 'access' in kwargs:
+            self._check_access(context, instance, kwargs['access'])
             instance.update_access(kwargs['access'])
 
     def update(self, req, id, body, tenant_id):

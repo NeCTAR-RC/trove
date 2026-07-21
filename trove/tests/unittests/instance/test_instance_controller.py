@@ -401,8 +401,11 @@ class TestInstanceController(trove_testtools.TestCase):
             MagicMock(), 'fake_id', body, 'fake_tenant_id'
         )
 
+    @mock.patch('trove.common.clients.create_neutron_client')
     @mock.patch('trove.instance.models.Instance.load')
-    def test_update_name_and_access(self, load_mock):
+    def test_update_name_and_access(self, load_mock, neutron_mock):
+        neutron_mock.return_value.list_ports.return_value = {
+            'ports': [{'network_id': 'user-net'}]}
         body = {
             'instance': {
                 'name': 'new_name',
@@ -421,8 +424,12 @@ class TestInstanceController(trove_testtools.TestCase):
         ins_mock.update_access.assert_called_once_with(
             body['instance']['access'])
 
+    @mock.patch('trove.common.clients.create_neutron_client')
     @mock.patch('trove.instance.models.Instance.load')
-    def test_update_does_not_touch_conf_on_name_or_access(self, load_mock):
+    def test_update_does_not_touch_conf_on_name_or_access(
+            self, load_mock, neutron_mock):
+        neutron_mock.return_value.list_ports.return_value = {
+            'ports': [{'network_id': 'user-net'}]}
         body = {
             'instance': {
                 'name': 'new_name',

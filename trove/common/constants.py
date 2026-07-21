@@ -15,6 +15,11 @@
 BACKUP_TYPE_FULL = 'full'
 BACKUP_TYPE_INC = 'incremental'
 ETH1_CONFIG_PATH = "/etc/trove/eth1.json"
+# Nectarism: the sentinel network id that the Nectar nova default_networks
+# patch replaces with the default network(s) of the compute host at
+# scheduling time. It is not a real neutron network: it has no subnets and
+# no port can be created on it.
+DEFAULT_NETWORK_ID = "00000000-0000-0000-0000-000000000000"
 DOCKER_NETWORK_NAME = "database-network"
 DOCKER_HOST_NIC_MODE = "docker-hostnic"
 DOCKER_BRIDGE_MODE = "bridge"

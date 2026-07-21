@@ -16,6 +16,8 @@ import uuid
 from unittest.mock import Mock
 from unittest.mock import patch
 
+from novaclient import exceptions as nova_exceptions
+
 from trove.backup import models as backup_models
 from trove.common import cfg
 from trove.common import clients
@@ -466,3 +468,61 @@ class TestInstanceKeyCaching(trove_testtools.TestCase):
         self.assertEqual(keyfn.call_count, 1)
         self.assertIsNone(keycache[30])
         self.assertEqual(keyfn.call_count, 2)
+
+
+class TestDeleteResources(trove_testtools.TestCase):
+    """Ordering guarantees of BaseInstance._delete_resources."""
+
+    def _build_instance(self, recorder):
+        instance = models.BaseInstance.__new__(models.BaseInstance)
+        instance.db_info = Mock(id='inst-id', region_id='regionOne')
+        instance._nova_client = Mock()
+        instance._neutron_client = Mock()
+        instance._volume_client = Mock()
+        instance._guest = Mock()
+        instance.context = Mock()
+        instance.server = Mock()
+        instance._server_group = None
+        instance._server_group_loaded = True
+        instance.server_status_matches = Mock(return_value=False)
+
+        server_gone = {'value': False}
+
+        def servers_get(server_id):
+            if server_gone['value']:
+                recorder.append('server-gone')
+                raise nova_exceptions.NotFound(404)
+            recorder.append('server-present')
+            # The first lookup happens before the delete is issued; every
+            # later one is the poll waiting for the server to disappear.
+            server_gone['value'] = True
+            return Mock(status='SHUTDOWN')
+
+        instance._nova_client.servers.get.side_effect = servers_get
+        instance.server.delete.side_effect = (
+            lambda: recorder.append('server-delete'))
+        instance._neutron_client.list_ports.return_value = {'ports': []}
+        instance._neutron_client.list_security_groups.return_value = {
+            'security_groups': [{'id': 'sg-id'}]}
+        instance._neutron_client.delete_security_group.side_effect = (
+            lambda sg_id: recorder.append('delete-sg'))
+        instance._volume_client.volumes.list.return_value = []
+        return instance
+
+    @patch.object(models, 'notification', new=Mock())
+    @patch.object(models.srv_grp.ServerGroup, 'delete', new=Mock())
+    def test_security_group_deleted_after_server_is_gone(self):
+        # Ports that nova created itself are only removed once the server
+        # deletion completes, and they hold a reference to the security
+        # group until then. Deleting the security group any earlier fails
+        # with SecurityGroupInUse and leaks it.
+        recorder = []
+        instance = self._build_instance(recorder)
+        self.patch_conf_property('trove_dns_support', False)
+
+        instance._delete_resources(deleted_at=None)
+
+        self.assertIn('delete-sg', recorder)
+        self.assertIn('server-gone', recorder)
+        self.assertLess(recorder.index('server-gone'),
+                        recorder.index('delete-sg'))
