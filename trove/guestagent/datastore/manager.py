@@ -226,6 +226,11 @@ class Manager(periodic_task.PeriodicTasks):
         self.status.begin_install()
         post_processing = True if cluster_config else False
         try:
+            # Nectarism: for instances on the Nectar default network the
+            # eth1 config is only a marker injected at boot; resolve it
+            # from the live interfaces before anything (docker network,
+            # replication) reads it.
+            guestagent_utils.resolve_eth1_config()
             # Since all module handling is common, don't pass it down to the
             # individual 'do_prepare' methods.
             self.do_prepare(context, packages, databases, memory_mb,

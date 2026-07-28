@@ -14,10 +14,13 @@
 #    under the License.
 
 from collections import abc
+import ipaddress
 import json
 import os
 import re
+import socket
 
+from oslo_log import log as logging
 from pyroute2 import IPRoute
 from semantic_version import Version
 
@@ -29,6 +32,7 @@ from trove.common import utils
 from trove.guestagent.common import operating_system
 
 CONF = cfg.CONF
+LOG = logging.getLogger(__name__)
 
 
 def update_dict(updates, target):
@@ -188,14 +192,155 @@ def get_conf_dir():
     return conf_dir
 
 
+def _get_default_gateway(ipr, ifindex, family):
+    for route in ipr.get_routes(family=family):
+        if route['dst_len'] != 0:
+            continue
+        if route.get_attr('RTA_OIF') != ifindex:
+            continue
+        gateway = route.get_attr('RTA_GATEWAY')
+        if gateway:
+            return gateway
+    return None
+
+
+def _discover_database_nic(mgmt_mac):
+    """Build the eth1 config from the live network state of the guest.
+
+    The database NIC is the interface that is not the management port
+    (identified by MAC address), excluding loopback and container
+    interfaces. Used for instances on the Nectar default network, where
+    the port is created by Nova at scheduling time and its details cannot
+    be injected by the control plane before boot.
+    """
+    excluded_prefixes = ('lo', 'docker', 'veth', 'br-')
+    with IPRoute() as ipr:
+        for link in ipr.get_links():
+            ifname = link.get_attr('IFLA_IFNAME') or ''
+            mac = (link.get_attr('IFLA_ADDRESS') or '').lower()
+            if not mac or ifname.startswith(excluded_prefixes):
+                continue
+            if mac == mgmt_mac:
+                continue
+
+            ifindex = link['index']
+            v4_iface = None
+            v6_iface = None
+            for addr in ipr.get_addr(index=ifindex):
+                address = addr.get_attr('IFA_ADDRESS')
+                if not address:
+                    continue
+                iface = ipaddress.ip_interface(
+                    f"{address}/{addr['prefixlen']}")
+                if iface.is_link_local:
+                    continue
+                if iface.version == 4 and not v4_iface:
+                    v4_iface = iface
+                elif iface.version == 6 and not v6_iface:
+                    v6_iface = iface
+
+            if not v4_iface and not v6_iface:
+                LOG.debug("Skipping interface %s (%s): no usable address",
+                          ifname, mac)
+                continue
+
+            nic_info = {"mac_address": mac}
+            if v4_iface:
+                nic_info["ipv4_address"] = str(v4_iface.ip)
+                nic_info["ipv4_cidr"] = str(v4_iface.network)
+                _set_gateway(nic_info, "ipv4_gateway", ipr, ifindex,
+                             socket.AF_INET)
+            if v6_iface:
+                nic_info["ipv6_address"] = str(v6_iface.ip)
+                nic_info["ipv6_cidr"] = str(v6_iface.network)
+                # Only a routable gateway is usable here. The control
+                # plane deliberately leaves ipv6_gateway unset unless the
+                # subnet is dhcpv6-stateful, and a link local next hop
+                # from the default route is outside the ipam pool, which
+                # docker rejects when the network is created.
+                _set_gateway(nic_info, "ipv6_gateway", ipr, ifindex,
+                             socket.AF_INET6, skip_link_local=True)
+
+            LOG.info("Discovered database NIC %s: %s", ifname, nic_info)
+            return nic_info
+
+    raise exception.TroveError(
+        "Could not discover the database network interface (management "
+        "MAC: %s)" % mgmt_mac)
+
+
+def _set_gateway(nic_info, key, ipr, ifindex, family,
+                 skip_link_local=False):
+    """Record the default gateway of an interface, when it is usable.
+
+    The key is left out entirely rather than set to None, so that the
+    config looks the same as one built by the control plane from a subnet
+    without a gateway.
+    """
+    gateway = _get_default_gateway(ipr, ifindex, family)
+    if not gateway:
+        LOG.warning("No default gateway found for interface %s (%s), the "
+                    "database container will have no default route",
+                    ifindex, key)
+        return
+    if skip_link_local and ipaddress.ip_address(gateway).is_link_local:
+        LOG.info("Ignoring link local %s %s for interface %s",
+                 key, gateway, ifindex)
+        return
+    nic_info[key] = gateway
+
+
+def resolve_eth1_config():
+    """Resolve a deferred eth1 config left by the control plane.
+
+    For instances on the Nectar default network the taskmanager injects a
+    marker ({"mode": "discover", "mgmt_mac": ...}) instead of the real
+    config, because the database port is only created by Nova at
+    scheduling time.
+    Rewrite the file with the discovered interface details so all readers
+    (docker network setup, replication strategies) see a normal config.
+    Idempotent and a no-op when the file is absent or already resolved.
+    """
+    if not os.path.exists(constants.ETH1_CONFIG_PATH):
+        return
+
+    with open(constants.ETH1_CONFIG_PATH) as fd:
+        eth1_config = json.load(fd)
+    if eth1_config.get('mode') != 'discover':
+        return
+
+    mgmt_mac = (eth1_config.get('mgmt_mac') or '').lower()
+    if not mgmt_mac:
+        # The management mac is the only thing telling the two interfaces
+        # apart. Guessing would risk moving the management interface into
+        # the database container, cutting the guest agent off the control
+        # plane and exposing the database on the management network.
+        raise exception.TroveError(
+            "The eth1 config marker has no management mac address, refusing "
+            "to guess the database network interface")
+    nic_info = _discover_database_nic(mgmt_mac)
+    with open(constants.ETH1_CONFIG_PATH, 'w') as fd:
+        json.dump(nic_info, fd)
+    LOG.info("Resolved eth1 config: %s", nic_info)
+
+
 def disable_user_defined_port():
     with open(constants.ETH1_CONFIG_PATH) as fd:
         eth1_config = json.load(fd)
-    ipr = IPRoute()
-    ifaces = ipr.get_links(address=eth1_config.get("mac_address"))
-    if not ifaces:
+    mac_address = eth1_config.get("mac_address")
+    if not mac_address:
+        # Never call get_links() without a mac. pyroute2 drops the None
+        # from the dump filter, the empty filter then matches every
+        # interface, and the first one is the loopback: the port we would
+        # take down is lo.
+        LOG.warning("No mac address in %s, not disabling the user defined "
+                    "port", constants.ETH1_CONFIG_PATH)
         return
-    ifname = ifaces[0].get_attr('IFLA_IFNAME')
+    with IPRoute() as ipr:
+        ifaces = ipr.get_links(address=mac_address)
+        if not ifaces:
+            return
+        ifname = ifaces[0].get_attr('IFLA_IFNAME')
     operating_system.execute_shell_cmd(f"ip link set {ifname} down", [],
                                        shell=True,
                                        as_root=True)
