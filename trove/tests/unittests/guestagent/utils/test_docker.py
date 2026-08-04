@@ -150,6 +150,37 @@ class TestDockerUtils(trove_testtools.TestCase):
             self.docker_client, image_name)
         self.assertEqual(registry, mock_image_object)
 
+    def test_get_image_registry_not_found(self):
+        image_name = "example.domain/repo/mariadb:tag"
+        self.docker_client.images.get_registry_data.side_effect = \
+            docker.errors.NotFound("not found")
+        registry = docker_utils.get_image_registry(
+            self.docker_client, image_name)
+        self.assertIsNone(registry)
+
+    def test_get_image_registry_not_found_harbor(self):
+        # NOTE(nectar): Harbor's 404 for a missing manifest carries a
+        # non-conformant error code, which the docker daemon turns into a
+        # 500, so docker surfaces a plain APIError rather than a NotFound.
+        image_name = "example.domain/repo/mariadb:tag"
+        self.docker_client.images.get_registry_data.side_effect = \
+            docker.errors.APIError(
+                '500 Server Error for http+docker://localhost/v1.55/'
+                'distribution/example.domain/repo/mariadb:tag/json: '
+                'Internal Server Error ("unknown: artifact '
+                'repo/mariadb:tag not found")')
+        registry = docker_utils.get_image_registry(
+            self.docker_client, image_name)
+        self.assertIsNone(registry)
+
+    def test_get_image_registry_api_error(self):
+        image_name = "example.domain/repo/mariadb:tag"
+        self.docker_client.images.get_registry_data.side_effect = \
+            docker.errors.APIError("500 Server Error: unauthorized")
+        self.assertRaises(docker.errors.APIError,
+                          docker_utils.get_image_registry,
+                          self.docker_client, image_name)
+
     @mock.patch("docker.DockerClient")
     def test_get_health_status(self, mock_client):
         mock_container = mock.MagicMock()

@@ -278,6 +278,17 @@ def get_image_registry(client, image):
         LOG.warning(f"Image was not found in registry: {str(e)}")
         registry_data = None
     except docker.errors.APIError as e:
+        # NOTE(nectar): Harbor answers a missing manifest with a 404 whose
+        # error code is NOT_FOUND, which is not in the set the OCI
+        # distribution spec permits. The docker daemon resolves the
+        # unregistered code to ErrorCodeUnknown, whose descriptor carries a
+        # 500, so docker raises a generic APIError rather than NotFound and
+        # the major version tag fallback in get_backup_image() never gets a
+        # chance to run. Treat a "not found" explanation as a missing image.
+        # Fixed upstream by https://github.com/goharbor/harbor/pull/23637
+        if 'not found' in str(e).lower():
+            LOG.warning(f"Image was not found in registry: {str(e)}")
+            return None
         LOG.error(f"APIError occured while trying to fetch image: {str(e)}")
         raise e
     return registry_data
