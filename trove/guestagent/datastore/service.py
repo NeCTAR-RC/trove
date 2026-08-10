@@ -453,7 +453,9 @@ class BaseDbApp(object):
         """
         return image.split('/')[-1].find(':') > 0
 
-    def get_backup_image(self, ds_version=CONF.datastore_version):
+    def get_backup_image(self, ds_version=None):
+        if ds_version is None:
+            ds_version = CONF.datastore_version
         image = cfg.get_configuration_property('backup_docker_image')
         if not image:
             LOG.error(

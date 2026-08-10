@@ -61,13 +61,17 @@ class TestService(trove_testtools.TestCase):
         _img = f'{CONF.mariadb.backup_docker_image}:{CONF.datastore_version}'
         self.assertEqual(_img, image)
 
-    def test_mysql_backup_image_with_tag(self):
+    @mock.patch.object(docker_util, 'get_image_registry')
+    def test_mysql_backup_image_with_tag(self, mock_get_image_registry):
+        mock_registry_object = mock.Mock()
+        mock_registry_object.image_name = "example.domain/repo/mysql:1.1.0"
+        mock_get_image_registry.return_value = mock_registry_object
         self.patch_datastore_manager('mysql')
         CONF.set_override('backup_docker_image',
                           'example.domain/repo/mysql:1.1.0', 'mysql')
         self.patch_conf_property('datastore_version', '5.7')
         image = self.mysql_app.get_backup_image()
-        self.assertEqual(image, "example.domain/repo/mysql5.7:1.1.0")
+        self.assertEqual(image, "example.domain/repo/mysql:1.1.0")
 
     @mock.patch.object(docker_util, 'get_image_registry')
     def test_mysql_backup_image_without_tag(self, mock_get_image_registry):
@@ -80,6 +84,24 @@ class TestService(trove_testtools.TestCase):
         self.patch_conf_property('datastore_version', '5.7')
         image = self.mysql_app.get_backup_image()
         self.assertEqual(image, "example.domain/repo/mysql:5.7")
+
+    @mock.patch.object(docker_util, 'get_image_registry')
+    def test_mysql_backup_image_major_tag_fallback(self,
+                                                   mock_get_image_registry):
+        # When the exact version tag is missing from the registry, the
+        # image is retried with a less specific tag.
+        mock_registry_object = mock.Mock()
+        mock_registry_object.image_name = "example.domain/repo/mysql:8.0"
+        mock_get_image_registry.side_effect = [None, mock_registry_object]
+        self.patch_datastore_manager('mysql')
+        CONF.set_override('backup_docker_image',
+                          'example.domain/repo/mysql', 'mysql')
+        self.patch_conf_property('datastore_version', '8.0.46')
+        image = self.mysql_app.get_backup_image()
+        self.assertEqual(image, "example.domain/repo/mysql:8.0")
+        tried = [c.args[1] for c in mock_get_image_registry.call_args_list]
+        self.assertEqual(tried, ["example.domain/repo/mysql:8.0.46",
+                                 "example.domain/repo/mysql:8.0"])
 
     def test_image_has_tag(self):
         fake_values = [
