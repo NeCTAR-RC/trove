@@ -37,7 +37,8 @@ cli_opts = [
     cfg.StrOpt(
         'driver',
         default='innobackupex',
-        choices=['innobackupex', 'mariabackup', 'pg_basebackup', 'xtrabackup']
+        choices=['innobackupex', 'mariabackup', 'pg_basebackup', 'pg_dump',
+                 'xtrabackup']
     ),
     cfg.BoolOpt('backup'),
     cfg.StrOpt(
@@ -75,6 +76,8 @@ driver_mapping = {
     'mariabackup_inc': 'backup.drivers.mariabackup.MariaBackupIncremental',
     'pg_basebackup': 'backup.drivers.postgres.PgBasebackup',
     'pg_basebackup_inc': 'backup.drivers.postgres.PgBasebackupIncremental',
+    # Restore-only: legacy (pre-Victoria) pg_dumpall backups.
+    'pg_dump': 'backup.drivers.pg_dump.PgDump',
     'xtrabackup': 'backup.drivers.xtrabackup.XtraBackup',
     'xtrabackup_inc': 'backup.drivers.xtrabackup.XtraBackupIncremental'
 }

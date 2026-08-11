@@ -167,3 +167,75 @@ class TestPostgresManager(trove_testtools.TestCase):
         with mock.patch.object(cfg, 'get_configuration_property') as m:
             self.pg_manager.clean_wal_archives(mock.ANY)
             m.assert_not_called()
+
+
+class TestPostgresManagerDoPrepare(trove_testtools.TestCase):
+    def setUp(self):
+        super(TestPostgresManagerDoPrepare, self).setUp()
+        manager.PostgresManager._docker_client = mock.MagicMock()
+        self.patch_datastore_manager('postgresql')
+        self.pg_manager = manager.PostgresManager()
+        self.pg_manager.app = mock.MagicMock()
+        self.pg_manager.perform_restore = mock.Mock()
+
+        # Track call ordering of start_db vs perform_restore.
+        self.tracker = mock.Mock()
+        self.tracker.attach_mock(self.pg_manager.app.start_db, 'start_db')
+        self.tracker.attach_mock(self.pg_manager.perform_restore,
+                                 'perform_restore')
+
+    def _do_prepare(self, backup_info):
+        self.pg_manager.do_prepare(
+            context=mock.Mock(), packages=None, databases=None,
+            memory_mb=None, users=None, device_path=None,
+            mount_point=None, backup_info=backup_info,
+            config_contents='', root_password=None, overrides=None,
+            cluster_config=None, snapshot=None, ds_version='14')
+
+    def _backup_info(self, backup_type):
+        return {
+            'id': 'backup-id',
+            'location': 'https://example.com/v1/AUTH_x/db/backup-id.gz.enc',
+            'checksum': 'checksum',
+            'type': backup_type,
+            'storage_driver': 'swift',
+        }
+
+    @mock.patch('trove.guestagent.datastore.postgres.manager'
+                '.operating_system')
+    def test_do_prepare_legacy_pgdump(self, mock_os):
+        self._do_prepare(self._backup_info('PgDump'))
+
+        # The database is started before the logical restore, and
+        # start_db runs again at the end of do_prepare.
+        names = [c[0] for c in self.tracker.mock_calls]
+        self.assertEqual(
+            ['start_db', 'perform_restore', 'start_db'], names)
+
+        # No recovery.signal for a logical restore.
+        mock_os.execute_shell_cmd.assert_not_called()
+
+    @mock.patch('trove.guestagent.datastore.postgres.manager'
+                '.operating_system')
+    def test_do_prepare_modern_restore(self, mock_os):
+        self._do_prepare(self._backup_info('full'))
+
+        # Restore happens with the database down; recovery.signal is
+        # created, then a single start_db.
+        names = [c[0] for c in self.tracker.mock_calls]
+        self.assertEqual(['perform_restore', 'start_db'], names)
+
+        touch_calls = [
+            c for c in mock_os.execute_shell_cmd.call_args_list
+            if 'recovery.signal' in c[0][0]
+        ]
+        self.assertEqual(1, len(touch_calls))
+
+    @mock.patch('trove.guestagent.datastore.postgres.manager'
+                '.operating_system')
+    def test_do_prepare_no_backup(self, mock_os):
+        self._do_prepare(None)
+
+        names = [c[0] for c in self.tracker.mock_calls]
+        self.assertEqual(['start_db'], names)
+        mock_os.execute_shell_cmd.assert_not_called()

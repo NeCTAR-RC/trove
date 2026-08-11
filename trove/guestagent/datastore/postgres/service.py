@@ -43,6 +43,16 @@ HBA_CONFIG_FILE = '/etc/postgresql/pg_hba.conf'
 # The same with the path in archive_command config option.
 WAL_ARCHIVE_DIR = '/var/lib/postgresql/data/wal_archive'
 
+# Ussuri-era trove recorded the backup runner class name in
+# backups.backup_type ('PgDump', 'PgBaseBackup', ...); the taskmanager
+# passes it through as backup_info['type']. Modern backups record
+# 'full'/'incremental' instead.
+LEGACY_PGDUMP_BACKUP_TYPE = 'PgDump'
+
+
+def is_legacy_pgdump_backup(backup_info):
+    return (backup_info or {}).get('type') == LEGACY_PGDUMP_BACKUP_TYPE
+
 
 class PgSqlApp(service.BaseDbApp):
     _configuration_manager = None
@@ -240,7 +250,57 @@ class PgSqlApp(service.BaseDbApp):
 
         LOG.info("Finished restarting database")
 
+    def _restore_os_cred(self, context):
+        return (f"--os-token={context.auth_token} "
+                f"--os-auth-url={CONF.service_credentials.auth_url} "
+                f"--os-tenant-id={context.project_id} "
+                f"--os-region-name={CONF.service_credentials.region_name}")
+
+    def restore_legacy_pgdump_backup(self, context, backup_info):
+        """Restore a legacy pg_dumpall backup into a running database.
+
+        The caller (PostgresManager.do_prepare) must have started a
+        fresh, healthy database first. This pipes SQL over the postgres
+        unix socket; it does not stop the database or touch the data
+        directory.
+        """
+        backup_id = backup_info['id']
+        storage_driver = backup_info.get('storage_driver', 'swift')
+        image = self.get_backup_image()
+        name = 'db_restore'
+        volumes = {
+            constants.POSTGRESQL_HOST_SOCKET_PATH: {
+                'bind': '/var/run/postgresql',
+                'mode': 'ro'
+            }
+        }
+
+        command = (
+            f'python3 main.py --nobackup '
+            f'--storage-driver={storage_driver} --driver=pg_dump '
+            f'{self._restore_os_cred(context)} '
+            f'--restore-from={backup_info["location"]} '
+            f'--restore-checksum={backup_info["checksum"]}'
+        )
+        if CONF.backup_aes_cbc_key:
+            command = (f"{command} "
+                       f"--backup-encryption-key={CONF.backup_aes_cbc_key}")
+
+        LOG.info('Starting to restore legacy PgDump backup %s, command: %s',
+                 backup_id, command)
+        output, ret = docker_util.run_container(
+            self.docker_client, image, name,
+            volumes=volumes, command=command)
+        if not ret:
+            msg = (f'Failed to run legacy pg_dump restore container, '
+                   f'error: {output[-1]}')
+            LOG.error(msg)
+            raise Exception(msg)
+
     def restore_backup(self, context, backup_info, restore_location):
+        if is_legacy_pgdump_backup(backup_info):
+            return self.restore_legacy_pgdump_backup(context, backup_info)
+
         backup_id = backup_info['id']
         storage_driver = backup_info.get('storage_driver', 'swift')
         backup_driver = self.get_backup_strategy()
@@ -253,10 +313,7 @@ class PgSqlApp(service.BaseDbApp):
             }
         }
 
-        os_cred = (f"--os-token={context.auth_token} "
-                   f"--os-auth-url={CONF.service_credentials.auth_url} "
-                   f"--os-tenant-id={context.project_id} "
-                   f"--os-region-name={CONF.service_credentials.region_name}")
+        os_cred = self._restore_os_cred(context)
 
         command = (
             f'python3 main.py --nobackup '

@@ -166,10 +166,21 @@ class PostgresManager(manager.Manager):
 
         # Restore data from backup and reset root password
         if backup_info:
+            legacy_pgdump = service.is_legacy_pgdump_backup(backup_info)
+            if legacy_pgdump:
+                # Legacy pg_dumpall restore is logical: it needs a
+                # running, freshly-initialized database (the datadir is
+                # still empty here, so the image entrypoint runs initdb),
+                # then the dump is piped in via psql over the socket.
+                LOG.info('Legacy PgDump backup detected, starting fresh '
+                         'database before logical restore')
+                command = f"postgres -c config_file={service.CONFIG_FILE}"
+                self.app.start_db(ds_version=ds_version, command=command)
+
             self.perform_restore(context, self.app.datadir, backup_info)
             is_swift = backup_info.get(
                 'storage_driver', 'swift') == "swift"
-            if not snapshot and is_swift:
+            if not snapshot and is_swift and not legacy_pgdump:
                 signal_file = f"{self.app.datadir}/recovery.signal"
                 operating_system.execute_shell_cmd(
                     f"touch {signal_file}", [], shell=True, as_root=True)
