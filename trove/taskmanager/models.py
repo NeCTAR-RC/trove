@@ -1206,6 +1206,33 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
                            snapshot=snapshot, modules=modules,
                            ds_version=ds_version)
 
+    def _get_database_nic_address(self, server):
+        """Address of the NIC the database is actually reachable on.
+
+        On the Nectar default network Nova may attach more than one
+        network, and the guest moves the first non management interface
+        into the database container (see _discover_database_nic). Nova
+        orders the server addresses by VIF, which is the order the guest
+        enumerates its interfaces, so applying the same rule here keeps
+        the DNS record on the interface the database is listening on.
+        Neutron's port list carries no such ordering, which is why
+        dns_ip_address picks arbitrarily once there is more than one user
+        port.
+        """
+        ports = neutron.get_instance_ports(self.neutron_client,
+                                           self.db_info.compute_instance_id)
+        mgmt_macs = {port['mac_address'] for port in ports
+                     if port['network_id'] in CONF.management_networks}
+        for addresses in server.addresses.values():
+            for address in addresses:
+                if address.get('OS-EXT-IPS:type') != 'fixed':
+                    continue
+                if address.get('OS-EXT-IPS-MAC:mac_addr') in mgmt_macs:
+                    continue
+                # v4 only: the designate driver creates an A record.
+                if address.get('version') == 4:
+                    return address.get('addr')
+
     def _create_dns_entry(self):
         dns_support = CONF.trove_dns_support
         LOG.debug("trove dns support = %s", dns_support)
@@ -1238,7 +1265,11 @@ class FreshInstanceTasks(FreshInstance, NotifyMixin, ConfigurationMixin):
                              sleep_time=1, time_out=CONF.dns_time_out)
             load_simple_instance_addresses(self.context, self.db_info)
             LOG.debug("Creating dns entry...")
-            ip = self.dns_ip_address
+            ip = self._get_database_nic_address(get_server())
+            if not ip:
+                LOG.warning("Could not identify the database NIC of instance "
+                            "%s, falling back to its first address", self.id)
+                ip = self.dns_ip_address
             if not ip:
                 raise TroveError(_("Failed to create DNS entry for instance "
                                    "%s. No IP available.") % self.id)

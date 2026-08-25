@@ -1397,3 +1397,82 @@ class ClusterRootTest(trove_testtools.TestCase):
             call(context, cluster_instances[1])
         ]
         root_history_create.assert_has_calls(calls)
+
+
+class DatabaseNicAddressTest(trove_testtools.TestCase):
+    """The DNS record has to land on the NIC the guest gave the container."""
+
+    def setUp(self):
+        super(DatabaseNicAddressTest, self).setUp()
+        self.patch_conf_property('management_networks', ['mgmt-net'])
+        self.task = taskmanager_models.FreshInstanceTasks.__new__(
+            taskmanager_models.FreshInstanceTasks)
+        self.task._neutron_client = Mock()
+        self.task.db_info = Mock(compute_instance_id='server-id')
+
+    def _address(self, mac, addr, ip_type='fixed'):
+        return {'version': 4, 'addr': addr, 'OS-EXT-IPS:type': ip_type,
+                'OS-EXT-IPS-MAC:mac_addr': mac}
+
+    @patch.object(taskmanager_models.neutron, 'get_instance_ports')
+    def test_first_vif_wins(self, mock_ports):
+        mock_ports.return_value = [
+            {'mac_address': 'fa:16:3e:00:00:01', 'network_id': 'luna-net'},
+            {'mac_address': 'fa:16:3e:00:00:02', 'network_id': 'data-net'},
+            {'mac_address': 'fa:16:3e:00:00:03', 'network_id': 'mgmt-net'},
+        ]
+        server = Mock(addresses={
+            'luna': [self._address('fa:16:3e:00:00:01', '10.2.11.131')],
+            'trove-data': [self._address('fa:16:3e:00:00:02',
+                                         '10.255.130.59')],
+            'trove-management': [self._address('fa:16:3e:00:00:03',
+                                               '192.168.35.225')],
+        })
+
+        self.assertEqual('10.2.11.131',
+                         self.task._get_database_nic_address(server))
+
+    @patch.object(taskmanager_models.neutron, 'get_instance_ports')
+    def test_management_is_skipped_wherever_it_sits(self, mock_ports):
+        # Selection is by mac, so a management interface attached first
+        # is still not a candidate.
+        mock_ports.return_value = [
+            {'mac_address': 'fa:16:3e:00:00:03', 'network_id': 'mgmt-net'},
+            {'mac_address': 'fa:16:3e:00:00:01', 'network_id': 'luna-net'},
+        ]
+        server = Mock(addresses={
+            'trove-management': [self._address('fa:16:3e:00:00:03',
+                                               '192.168.35.225')],
+            'luna': [self._address('fa:16:3e:00:00:01', '10.2.11.131')],
+        })
+
+        self.assertEqual('10.2.11.131',
+                         self.task._get_database_nic_address(server))
+
+    @patch.object(taskmanager_models.neutron, 'get_instance_ports')
+    def test_floating_ip_is_not_used(self, mock_ports):
+        mock_ports.return_value = [
+            {'mac_address': 'fa:16:3e:00:00:01', 'network_id': 'luna-net'},
+        ]
+        server = Mock(addresses={
+            'luna': [
+                self._address('fa:16:3e:00:00:01', '10.2.11.131'),
+                self._address('fa:16:3e:00:00:01', '203.0.113.9',
+                              ip_type='floating'),
+            ],
+        })
+
+        self.assertEqual('10.2.11.131',
+                         self.task._get_database_nic_address(server))
+
+    @patch.object(taskmanager_models.neutron, 'get_instance_ports')
+    def test_no_user_interface(self, mock_ports):
+        mock_ports.return_value = [
+            {'mac_address': 'fa:16:3e:00:00:03', 'network_id': 'mgmt-net'},
+        ]
+        server = Mock(addresses={
+            'trove-management': [self._address('fa:16:3e:00:00:03',
+                                               '192.168.35.225')],
+        })
+
+        self.assertIsNone(self.task._get_database_nic_address(server))

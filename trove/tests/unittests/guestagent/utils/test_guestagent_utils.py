@@ -110,9 +110,153 @@ class TestResolveEth1Config(TestCase):
                 'ipv4_address': '192.168.1.5',
                 'ipv4_cidr': '192.168.1.0/24',
                 'ipv4_gateway': '192.168.1.1',
+                'mgmt_mac': 'fa:16:3e:00:00:01',
             },
             self._read_config())
         ipr.get_addr.assert_called_with(index=3)
+
+    @mock.patch.object(guestagent_utils, 'IPRoute')
+    def test_resolve_picks_first_vif(self, mock_iproute):
+        # Several default networks give the guest one interface each. The
+        # user network is attached first, so the lowest ifindex wins.
+        self._write_config({'mode': 'discover',
+                            'mgmt_mac': 'fa:16:3e:00:00:01'})
+
+        ipr = mock_iproute.return_value.__enter__.return_value
+        # Dumped out of ifindex order on purpose.
+        ipr.get_links.return_value = [
+            FakeNetlinkMessage({'index': 4, 'IFLA_IFNAME': 'ens7',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:03'}),
+            FakeNetlinkMessage({'index': 2, 'IFLA_IFNAME': 'ens3',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:01'}),
+            FakeNetlinkMessage({'index': 3, 'IFLA_IFNAME': 'ens6',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:02'}),
+        ]
+        ipr.get_addr.side_effect = lambda index: {
+            3: [FakeNetlinkMessage({'prefixlen': 24,
+                                    'IFA_ADDRESS': '10.2.11.131'})],
+            4: [FakeNetlinkMessage({'prefixlen': 24,
+                                    'IFA_ADDRESS': '10.255.130.59'})],
+        }[index]
+        ipr.get_routes.return_value = [
+            FakeNetlinkMessage({'dst_len': 0, 'RTA_OIF': 3,
+                                'RTA_GATEWAY': '10.2.11.1'}),
+            FakeNetlinkMessage({'dst_len': 0, 'RTA_OIF': 4,
+                                'RTA_GATEWAY': '10.255.130.1'}),
+        ]
+
+        guestagent_utils.resolve_eth1_config()
+
+        self.assertEqual(
+            {
+                'mac_address': 'fa:16:3e:00:00:02',
+                'ipv4_address': '10.2.11.131',
+                'ipv4_cidr': '10.2.11.0/24',
+                'ipv4_gateway': '10.2.11.1',
+                'mgmt_mac': 'fa:16:3e:00:00:01',
+            },
+            self._read_config())
+
+    @mock.patch('time.sleep')
+    @mock.patch.object(guestagent_utils, 'IPRoute')
+    def test_resolve_waits_for_a_slow_interface(self, mock_iproute,
+                                                mock_sleep):
+        # A lease that has not landed yet must not hand the database to
+        # the next interface along.
+        self._write_config({'mode': 'discover',
+                            'mgmt_mac': 'fa:16:3e:00:00:01'})
+
+        ipr = mock_iproute.return_value.__enter__.return_value
+        ipr.get_links.return_value = [
+            FakeNetlinkMessage({'index': 2, 'IFLA_IFNAME': 'ens3',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:01'}),
+            FakeNetlinkMessage({'index': 3, 'IFLA_IFNAME': 'ens6',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:02'}),
+            FakeNetlinkMessage({'index': 4, 'IFLA_IFNAME': 'ens7',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:03'}),
+        ]
+        slow = {'polls': 0}
+
+        def get_addr(index):
+            if index == 3:
+                slow['polls'] += 1
+                if slow['polls'] < 3:
+                    return []
+                return [FakeNetlinkMessage({'prefixlen': 24,
+                                            'IFA_ADDRESS': '10.2.11.131'})]
+            return [FakeNetlinkMessage({'prefixlen': 24,
+                                        'IFA_ADDRESS': '10.255.130.59'})]
+
+        ipr.get_addr.side_effect = get_addr
+        ipr.get_routes.return_value = [
+            FakeNetlinkMessage({'dst_len': 0, 'RTA_OIF': 3,
+                                'RTA_GATEWAY': '10.2.11.1'}),
+        ]
+
+        guestagent_utils.resolve_eth1_config()
+
+        self.assertEqual('fa:16:3e:00:00:02',
+                         self._read_config()['mac_address'])
+        self.assertTrue(mock_sleep.called)
+
+    @mock.patch('time.sleep')
+    @mock.patch.object(guestagent_utils, 'IPRoute')
+    def test_resolve_gives_up_waiting(self, mock_iproute, mock_sleep):
+        # An interface that never gets an address must not block the
+        # build forever.
+        self._write_config({'mode': 'discover',
+                            'mgmt_mac': 'fa:16:3e:00:00:01'})
+
+        ipr = mock_iproute.return_value.__enter__.return_value
+        ipr.get_links.return_value = [
+            FakeNetlinkMessage({'index': 3, 'IFLA_IFNAME': 'ens6',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:02'}),
+            FakeNetlinkMessage({'index': 4, 'IFLA_IFNAME': 'ens7',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:03'}),
+        ]
+        ipr.get_addr.side_effect = lambda index: (
+            [FakeNetlinkMessage({'prefixlen': 24,
+                                 'IFA_ADDRESS': '10.2.11.131'})]
+            if index == 3 else [])
+        ipr.get_routes.return_value = [
+            FakeNetlinkMessage({'dst_len': 0, 'RTA_OIF': 3,
+                                'RTA_GATEWAY': '10.2.11.1'}),
+        ]
+
+        with mock.patch.object(guestagent_utils,
+                               'DATABASE_NIC_SETTLE_TIMEOUT', 0):
+            guestagent_utils.resolve_eth1_config()
+
+        self.assertEqual('fa:16:3e:00:00:02',
+                         self._read_config()['mac_address'])
+
+    @mock.patch.object(guestagent_utils, 'IPRoute')
+    def test_resolve_unrouted_first_interface_refuses(self, mock_iproute):
+        # The user network is routable. A first interface without a
+        # default route means the default networks are not in the order
+        # this relies on, so there is nothing left to identify the
+        # database NIC.
+        self._write_config({'mode': 'discover',
+                            'mgmt_mac': 'fa:16:3e:00:00:01'})
+
+        ipr = mock_iproute.return_value.__enter__.return_value
+        ipr.get_links.return_value = [
+            FakeNetlinkMessage({'index': 3, 'IFLA_IFNAME': 'ens6',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:02'}),
+            FakeNetlinkMessage({'index': 4, 'IFLA_IFNAME': 'ens7',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:03'}),
+        ]
+        ipr.get_addr.side_effect = lambda index: [
+            FakeNetlinkMessage({'prefixlen': 24,
+                                'IFA_ADDRESS': '10.2.11.131'})]
+        ipr.get_routes.return_value = [
+            FakeNetlinkMessage({'dst_len': 0, 'RTA_OIF': 4,
+                                'RTA_GATEWAY': '10.255.130.1'}),
+        ]
+
+        self.assertRaises(exception.TroveError,
+                          guestagent_utils.resolve_eth1_config)
+        self.assertEqual('discover', self._read_config()['mode'])
 
     @mock.patch.object(guestagent_utils, 'IPRoute')
     def test_resolve_no_candidate_interface(self, mock_iproute):
@@ -253,3 +397,50 @@ class TestDisableUserDefinedPort(TestCase):
         ipr.get_links.assert_called_once_with(address='fa:16:3e:00:00:02')
         mock_os.execute_shell_cmd.assert_called_once_with(
             'ip link set ens6 down', [], shell=True, as_root=True)
+
+    @mock.patch.object(guestagent_utils, 'operating_system')
+    @mock.patch.object(guestagent_utils, 'IPRoute')
+    def test_every_user_port_is_downed(self, mock_iproute, mock_os):
+        # An extra default network left up competes for the default route
+        # and can cut the guest agent off from rabbit. Nothing in the
+        # guest uses it, so it goes down with the database port.
+        with open(self.eth1_file.name, 'w') as fd:
+            json.dump({'mac_address': 'fa:16:3e:00:00:02',
+                       'mgmt_mac': 'fa:16:3e:00:00:01'}, fd)
+        ipr = mock_iproute.return_value.__enter__.return_value
+        ipr.get_links.return_value = [
+            FakeNetlinkMessage({'index': 1, 'IFLA_IFNAME': 'lo',
+                                'IFLA_ADDRESS': '00:00:00:00:00:00'}),
+            FakeNetlinkMessage({'index': 2, 'IFLA_IFNAME': 'eth0',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:02'}),
+            FakeNetlinkMessage({'index': 3, 'IFLA_IFNAME': 'eth1',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:03'}),
+            FakeNetlinkMessage({'index': 4, 'IFLA_IFNAME': 'eth2',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:01'}),
+        ]
+
+        guestagent_utils.disable_user_defined_port()
+
+        self.assertEqual(
+            [mock.call('ip link set eth0 down', [], shell=True,
+                       as_root=True),
+             mock.call('ip link set eth1 down', [], shell=True,
+                       as_root=True)],
+            mock_os.execute_shell_cmd.call_args_list)
+
+    @mock.patch.object(guestagent_utils, 'operating_system')
+    @mock.patch.object(guestagent_utils, 'IPRoute')
+    def test_management_port_is_never_downed(self, mock_iproute, mock_os):
+        # Downing it would cut the guest agent off from the control plane.
+        with open(self.eth1_file.name, 'w') as fd:
+            json.dump({'mac_address': 'fa:16:3e:00:00:02',
+                       'mgmt_mac': 'fa:16:3e:00:00:01'}, fd)
+        ipr = mock_iproute.return_value.__enter__.return_value
+        ipr.get_links.return_value = [
+            FakeNetlinkMessage({'index': 2, 'IFLA_IFNAME': 'eth0',
+                                'IFLA_ADDRESS': 'fa:16:3e:00:00:01'}),
+        ]
+
+        guestagent_utils.disable_user_defined_port()
+
+        mock_os.execute_shell_cmd.assert_not_called()

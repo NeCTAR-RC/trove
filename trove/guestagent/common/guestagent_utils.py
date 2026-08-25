@@ -16,9 +16,11 @@
 from collections import abc
 import ipaddress
 import json
+import operator
 import os
 import re
 import socket
+import time
 
 from oslo_log import log as logging
 from pyroute2 import IPRoute
@@ -33,6 +35,12 @@ from trove.guestagent.common import operating_system
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
+
+# Bounded wait for every candidate database interface to be assigned an
+# address, so the selection below sees the whole set rather than
+# whichever interfaces won the race to configure themselves.
+DATABASE_NIC_SETTLE_TIMEOUT = 30
+DATABASE_NIC_SETTLE_INTERVAL = 1
 
 
 def update_dict(updates, target):
@@ -204,69 +212,142 @@ def _get_default_gateway(ipr, ifindex, family):
     return None
 
 
+def _has_default_route(ipr, ifindex):
+    return any(_get_default_gateway(ipr, ifindex, family)
+               for family in (socket.AF_INET, socket.AF_INET6))
+
+
+def _get_interface_addresses(ipr, ifindex):
+    """Return the first usable ipv4 and ipv6 address of an interface."""
+    v4_iface = None
+    v6_iface = None
+    for addr in ipr.get_addr(index=ifindex):
+        address = addr.get_attr('IFA_ADDRESS')
+        if not address:
+            continue
+        iface = ipaddress.ip_interface(f"{address}/{addr['prefixlen']}")
+        if iface.is_link_local:
+            continue
+        if iface.version == 4 and not v4_iface:
+            v4_iface = iface
+        elif iface.version == 6 and not v6_iface:
+            v6_iface = iface
+    return v4_iface, v6_iface
+
+
+def _candidate_links(ipr, mgmt_mac):
+    """Interfaces that could be the database NIC, in VIF order.
+
+    Sorted by ifindex rather than left in dump order: the kernel registers
+    interfaces in PCI enumeration order, which is libvirt device order,
+    which is the order Nova attached the ports. That is the same ordering
+    the control plane sees in the server's addresses, so both ends can
+    apply the same rule.
+    """
+    excluded_prefixes = ('lo', 'docker', 'veth', 'br-')
+    candidates = []
+    for link in ipr.get_links():
+        ifname = link.get_attr('IFLA_IFNAME') or ''
+        mac = (link.get_attr('IFLA_ADDRESS') or '').lower()
+        if not mac or ifname.startswith(excluded_prefixes):
+            continue
+        if mac == mgmt_mac:
+            continue
+        candidates.append({'index': link['index'], 'ifname': ifname,
+                           'mac': mac})
+    return sorted(candidates, key=operator.itemgetter('index'))
+
+
+def _settled_candidates(ipr, mgmt_mac):
+    """Candidate interfaces with an address, once they all have one.
+
+    An interface whose lease has not landed yet looks exactly like one
+    that will never get an address, so waiting is the only way to see the
+    whole candidate set. Without this a slow lease on the first interface
+    silently moves the database to another network.
+    """
+    deadline = time.monotonic() + DATABASE_NIC_SETTLE_TIMEOUT
+    while True:
+        candidates = _candidate_links(ipr, mgmt_mac)
+        for candidate in candidates:
+            candidate['ipv4'], candidate['ipv6'] = _get_interface_addresses(
+                ipr, candidate['index'])
+        addressed = [c for c in candidates if c['ipv4'] or c['ipv6']]
+        if not candidates or len(addressed) == len(candidates):
+            return addressed
+        if time.monotonic() >= deadline:
+            LOG.warning("Gave up waiting for %d of %d candidate interfaces "
+                        "to be assigned an address",
+                        len(candidates) - len(addressed), len(candidates))
+            return addressed
+        time.sleep(DATABASE_NIC_SETTLE_INTERVAL)
+
+
+def _select_database_nic(ipr, candidates):
+    """Choose the database NIC from the candidate interfaces.
+
+    A compute node with several default networks gives the guest one
+    interface per network, so being the interface that is not the
+    management port no longer identifies the database NIC on its own.
+    Nova attaches the default networks in configured order with the
+    routable user network first, so the lowest ifindex is the database
+    NIC.
+
+    That ordering is Nova configuration rather than something Trove
+    controls, so check the one property the user network must have: a
+    default route. Data networks may also have a gateway, so this catches
+    a reordering that puts an unrouted network first, not every one.
+    """
+    chosen = candidates[0]
+    if len(candidates) > 1:
+        LOG.info("Multiple candidate interfaces, choosing the first: %s",
+                 ', '.join('%s (%s, index %d)'
+                           % (c['ifname'], c['mac'], c['index'])
+                           for c in candidates))
+        if not _has_default_route(ipr, chosen['index']):
+            raise exception.TroveError(
+                "The first non-management interface %s (%s) has no default "
+                "route, so the default networks are not in the expected "
+                "order. Refusing to attach the database to it."
+                % (chosen['ifname'], chosen['mac']))
+    return chosen
+
+
 def _discover_database_nic(mgmt_mac):
     """Build the eth1 config from the live network state of the guest.
 
-    The database NIC is the interface that is not the management port
-    (identified by MAC address), excluding loopback and container
-    interfaces. Used for instances on the Nectar default network, where
-    the port is created by Nova at scheduling time and its details cannot
-    be injected by the control plane before boot.
+    Used for instances on the Nectar default network, where the ports are
+    created by Nova at scheduling time and their details cannot be
+    injected by the control plane before boot.
     """
-    excluded_prefixes = ('lo', 'docker', 'veth', 'br-')
     with IPRoute() as ipr:
-        for link in ipr.get_links():
-            ifname = link.get_attr('IFLA_IFNAME') or ''
-            mac = (link.get_attr('IFLA_ADDRESS') or '').lower()
-            if not mac or ifname.startswith(excluded_prefixes):
-                continue
-            if mac == mgmt_mac:
-                continue
+        candidates = _settled_candidates(ipr, mgmt_mac)
+        if not candidates:
+            raise exception.TroveError(
+                "Could not discover the database network interface "
+                "(management MAC: %s)" % mgmt_mac)
 
-            ifindex = link['index']
-            v4_iface = None
-            v6_iface = None
-            for addr in ipr.get_addr(index=ifindex):
-                address = addr.get_attr('IFA_ADDRESS')
-                if not address:
-                    continue
-                iface = ipaddress.ip_interface(
-                    f"{address}/{addr['prefixlen']}")
-                if iface.is_link_local:
-                    continue
-                if iface.version == 4 and not v4_iface:
-                    v4_iface = iface
-                elif iface.version == 6 and not v6_iface:
-                    v6_iface = iface
+        chosen = _select_database_nic(ipr, candidates)
 
-            if not v4_iface and not v6_iface:
-                LOG.debug("Skipping interface %s (%s): no usable address",
-                          ifname, mac)
-                continue
+        nic_info = {"mac_address": chosen['mac']}
+        if chosen['ipv4']:
+            nic_info["ipv4_address"] = str(chosen['ipv4'].ip)
+            nic_info["ipv4_cidr"] = str(chosen['ipv4'].network)
+            _set_gateway(nic_info, "ipv4_gateway", ipr, chosen['index'],
+                         socket.AF_INET)
+        if chosen['ipv6']:
+            nic_info["ipv6_address"] = str(chosen['ipv6'].ip)
+            nic_info["ipv6_cidr"] = str(chosen['ipv6'].network)
+            # Only a routable gateway is usable here. The control plane
+            # deliberately leaves ipv6_gateway unset unless the subnet is
+            # dhcpv6-stateful, and a link local next hop from the default
+            # route is outside the ipam pool, which docker rejects when
+            # the network is created.
+            _set_gateway(nic_info, "ipv6_gateway", ipr, chosen['index'],
+                         socket.AF_INET6, skip_link_local=True)
 
-            nic_info = {"mac_address": mac}
-            if v4_iface:
-                nic_info["ipv4_address"] = str(v4_iface.ip)
-                nic_info["ipv4_cidr"] = str(v4_iface.network)
-                _set_gateway(nic_info, "ipv4_gateway", ipr, ifindex,
-                             socket.AF_INET)
-            if v6_iface:
-                nic_info["ipv6_address"] = str(v6_iface.ip)
-                nic_info["ipv6_cidr"] = str(v6_iface.network)
-                # Only a routable gateway is usable here. The control
-                # plane deliberately leaves ipv6_gateway unset unless the
-                # subnet is dhcpv6-stateful, and a link local next hop
-                # from the default route is outside the ipam pool, which
-                # docker rejects when the network is created.
-                _set_gateway(nic_info, "ipv6_gateway", ipr, ifindex,
-                             socket.AF_INET6, skip_link_local=True)
-
-            LOG.info("Discovered database NIC %s: %s", ifname, nic_info)
-            return nic_info
-
-    raise exception.TroveError(
-        "Could not discover the database network interface (management "
-        "MAC: %s)" % mgmt_mac)
+        LOG.info("Discovered database NIC %s: %s", chosen['ifname'], nic_info)
+        return nic_info
 
 
 def _set_gateway(nic_info, key, ipr, ifindex, family,
@@ -319,12 +400,25 @@ def resolve_eth1_config():
             "The eth1 config marker has no management mac address, refusing "
             "to guess the database network interface")
     nic_info = _discover_database_nic(mgmt_mac)
+    # Kept so later boots can still tell the Nova attached user networks
+    # apart from the management port once the marker is gone.
+    nic_info['mgmt_mac'] = mgmt_mac
     with open(constants.ETH1_CONFIG_PATH, 'w') as fd:
         json.dump(nic_info, fd)
     LOG.info("Resolved eth1 config: %s", nic_info)
 
 
 def disable_user_defined_port():
+    """Take the Nova attached user networks down in the guest namespace.
+
+    The database NIC is about to be moved into the container by docker.
+    On the Nectar default network Nova may attach further networks that
+    nothing in the guest uses, and a default route on one of those
+    competes with the management route, which can cut the guest agent off
+    from the control plane. This runs on every boot, which is what keeps
+    them down once systemd-networkd has reconfigured the links from
+    scratch.
+    """
     with open(constants.ETH1_CONFIG_PATH) as fd:
         eth1_config = json.load(fd)
     mac_address = eth1_config.get("mac_address")
@@ -332,18 +426,27 @@ def disable_user_defined_port():
         # Never call get_links() without a mac. pyroute2 drops the None
         # from the dump filter, the empty filter then matches every
         # interface, and the first one is the loopback: the port we would
-        # take down is lo.
+        # take down is lo. A config without one is an unresolved marker,
+        # so discovery failed and there is nothing reliable to act on.
         LOG.warning("No mac address in %s, not disabling the user defined "
                     "port", constants.ETH1_CONFIG_PATH)
         return
+
+    mgmt_mac = (eth1_config.get("mgmt_mac") or '').lower()
     with IPRoute() as ipr:
-        ifaces = ipr.get_links(address=mac_address)
-        if not ifaces:
-            return
-        ifname = ifaces[0].get_attr('IFLA_IFNAME')
-    operating_system.execute_shell_cmd(f"ip link set {ifname} down", [],
-                                       shell=True,
-                                       as_root=True)
+        if mgmt_mac:
+            ifnames = [link['ifname']
+                       for link in _candidate_links(ipr, mgmt_mac)]
+        else:
+            # Built by the control plane, which names the only user port.
+            ifaces = ipr.get_links(address=mac_address)
+            ifnames = [ifaces[0].get_attr('IFLA_IFNAME')] if ifaces else []
+
+    for ifname in ifnames:
+        LOG.info("Taking down user defined port %s", ifname)
+        operating_system.execute_shell_cmd(f"ip link set {ifname} down", [],
+                                           shell=True,
+                                           as_root=True)
 
 
 # This helper method allows upgrade only between minor versions e.g. from 16.10
