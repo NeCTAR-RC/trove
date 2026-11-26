@@ -15,7 +15,9 @@
 #
 
 import abc
+import configparser
 import operator
+import os
 
 import docker
 from oslo_config import cfg as oslo_cfg
@@ -982,3 +984,25 @@ class Manager(periodic_task.PeriodicTasks):
             LOG.error("Run post_create_backup failed, error: %s" % str(e))
 
         return {}
+
+    def override_guest_info(self, **kwargs):
+        if ('/' in CONF.guest_info):
+            # Set guest_info_file to exactly guest_info from the conf file.
+            # This should be /etc/guest_info for pre-Kilo compatibility.
+            guest_info_file = CONF.guest_info
+        else:
+            guest_info_file = os.path.join(CONF.injected_config_location,
+                                           CONF.guest_info)
+
+        config = configparser.ConfigParser()
+        config.read(guest_info_file)
+
+        LOG.debug('Override guest_info.conf: %s', kwargs)
+
+        config.defaults().update(kwargs)
+
+        with open(guest_info_file, 'w') as f:
+            config.write(f)
+
+        for key, value in kwargs.items():
+            CONF.set_override(key, value)

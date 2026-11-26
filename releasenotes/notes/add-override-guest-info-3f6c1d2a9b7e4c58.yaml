@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Adds the guest agent ``override_guest_info`` method that the datastore
+    upgrade calls to record the new datastore version in ``guest_info.conf``.
+    Without it the upgrade raised ``AttributeError`` on the guest after the
+    database had been upgraded, and the guest agent kept using the old
+    datastore version for backup images and version checks.

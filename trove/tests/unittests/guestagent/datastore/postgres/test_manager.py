@@ -11,7 +11,9 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
+import configparser
 import os
+import tempfile
 from unittest import mock
 
 from trove.common import cfg
@@ -192,6 +194,26 @@ class TestPostgresManager(trove_testtools.TestCase):
             upgrade_info)
 
         self.pg_manager.override_guest_info.assert_not_called()
+
+    def test_override_guest_info(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            guest_info = os.path.join(tmpdir, 'guest_info.conf')
+            with open(guest_info, 'w') as f:
+                f.write('[DEFAULT]\n'
+                        'guest_id=fake-guest-id\n'
+                        'datastore_version=16.1\n')
+            cfg.CONF.set_override('guest_info', guest_info)
+            self.addCleanup(cfg.CONF.clear_override, 'guest_info')
+            self.addCleanup(cfg.CONF.clear_override, 'datastore_version')
+
+            self.pg_manager.override_guest_info(datastore_version='16.4')
+
+            config = configparser.ConfigParser()
+            config.read(guest_info)
+            self.assertEqual('16.4',
+                             config.defaults()['datastore_version'])
+            self.assertEqual('fake-guest-id', config.defaults()['guest_id'])
+            self.assertEqual('16.4', cfg.CONF.datastore_version)
 
 
 class TestPostgresManagerDoPrepare(trove_testtools.TestCase):
